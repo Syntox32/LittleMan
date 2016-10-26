@@ -79,7 +79,7 @@ class Assembler(Executor):
 
 		exprs = []
 
-		for l in lines:
+		for idx, l in enumerate(lines):
 			values = l.split(" ")
 
 			if len(values) == 1:   # Handle expressions with no address parameter

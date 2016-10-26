@@ -1,0 +1,6 @@
+LDA 6
+OUT
+ADD 6
+STA 6
+BRA 2
+MEM 1

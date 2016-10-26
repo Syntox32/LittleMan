@@ -1,0 +1,3 @@
+INP
+OUT
+HLT
