@@ -16,6 +16,8 @@ class Executor():
 			instr = mem[pc]
 			pc += 1
 
+			#print("> {0}".format(instr))
+
 			# Execute
 			if instr // 100 == 1:   # ADD
 				ac += mem[instr % 100]
@@ -45,11 +47,11 @@ class Executor():
 
 
 class AsmExpression():
-	def __init__(self, token, address=None):
+	def __init__(self, line_num, index, token, address=None):
+		self.line_num = line_num
+		self.index = index
 		self.token = token
 		self.adr = address
-
-	def get_opcode(): pass
 
 
 class Assembler(Executor):
@@ -66,7 +68,8 @@ class Assembler(Executor):
 			exprs = self._interpret(contents)
 			bcode = self._parse(exprs)
 
-			print(",".join([str(b) for b in bcode]))
+			# Print the new bytecode
+			print("[{0}]".format(",".join([str(b) for b in bcode])))
 			super().execute_bytecode(bcode)
 		else:
 			# Error unknown extension
@@ -75,62 +78,66 @@ class Assembler(Executor):
 
 	def _interpret(self, string):
 		lines = string.split("\n")
-		lines = self._prep_lines(lines)
-
 		exprs = []
+		#adr_line_offset = 0
 
 		for idx, l in enumerate(lines):
-			values = l.split(" ")
+			line = l.strip().upper()
+
+			# Skip empty lines or whole comment lines
+			if line == "" or line.startswith("#"):
+				#adr_line_offset += 1
+				continue
+
+			# Remove comments that are inline with code
+			if "#" in line:
+				line = line[0:line.index("#")].strip()
+
+			values = line.split(" ")
 
 			if len(values) == 1:   # Handle expressions with no address parameter
-				token = l
-				exprs.append(AsmExpression(token))
+				token = line
+				exprs.append(AsmExpression(idx, len(exprs), token))
 			elif len(values) == 2: # Expressions with a address parameter
 				token = values[0]
-				adr = values[1]
+				adr = int(values[1]) # - adr_line_offset
 				if int(adr) > 99:
 					print("Error! Memory address space exceeded: \'{0}\'".format(adr))
-				exprs.append(AsmExpression(token, adr))
+				exprs.append(AsmExpression(idx, len(exprs), token, adr))
 			else: # Error
-				print("Error! Invalid number of values({1}: \'{0}\'".format(len(values), l))
+				print("Error! Invalid number of values({1}: \'{0}\'".format(len(values), line))
 
 		return exprs
 
-	def _prep_lines(self, lines):
-		"""
-		Remove comments and emtpy lines.
-		"""
-		clean_lines = []
-		for l in lines:
-			line = l.strip().upper()
-			
-			# Skip empty lines or whole comment lines
-			if line == "" or line.startswith("#"): continue
-			# Remove comments that are inline with code
-			if "#" in line:
-				line = line[0:line.index("#")]
-			clean_lines.append(line)
-
-		return clean_lines
 
 	def _parse(self, expressions):
 
 		bytecode = []
 
-		for ex in expressions:
+		for idx, ex in enumerate(expressions):
 			token = ex.token
 			has_adr = ex.adr is not None
 			adr  = int(ex.adr) if has_adr else None
 
-			if   token == "ADD": bytecode.append(100 + adr) # add X to AC
-			elif token == "SUB": bytecode.append(200 + adr) # sub X from AC
+			# TODO: adr is going to be the same
+			# as the line num, so we need to convert
+			# the line num into the index of the bytecode
 
-			elif token == "STA": bytecode.append(300 + adr)	# Store AC in X
-			elif token == "LDA": bytecode.append(500 + adr)	# Load X into AC
+			#if not has_adr:
+			#	print(">> {0}".format(token))
+			#else:
+			#	print(">> {0}:{1}".format(token, adr))
+
+
+			if   token == "ADD": bytecode.append(100 + adr - 1) # add X to AC
+			elif token == "SUB": bytecode.append(200 + adr - 1) # sub X from AC
+
+			elif token == "STA": bytecode.append(300 + adr - 1)	# Store AC in X
+			elif token == "LDA": bytecode.append(500 + adr - 1)	# Load X into AC
 			
-			elif token == "BRA": bytecode.append(600 + adr) # Set PC to X
-			elif token == "BRZ": bytecode.append(700 + adr) # Set PC to X if AC=0
-			elif token == "BRP": bytecode.append(800 + adr) # Set PC to X if AC>0
+			elif token == "BRA": bytecode.append(600 + adr - 1) # Set PC to X
+			elif token == "BRZ": bytecode.append(700 + adr - 1) # Set PC to X if AC=0
+			elif token == "BRP": bytecode.append(800 + adr - 1) # Set PC to X if AC>0
 			
 			elif token == "INP": bytecode.append(901) # Read input to AC
 			elif token == "OUT": bytecode.append(902) # Write output from AC
@@ -142,12 +149,12 @@ class Assembler(Executor):
 			elif token.startswith("!"):
 				instr = token[1:]
 				if ex.adr is not None: # The custom instruction has an address value
-					bytecode.append(int(instr) + adr)
+					bytecode.append(int(instr) + adr - 1)
 				else: # Simply add the instruction
 					bytecode.append(int(instr))
 
 			else: # Error
-				print("Parsing Error! Unknown instruction: \'{0}\'".format(instr))
+				print("Parsing Error! Line: {0}, Unknown instruction: \'{1}\'".format(idx, instr))
 				sys.exit(1)
 
 		return bytecode
