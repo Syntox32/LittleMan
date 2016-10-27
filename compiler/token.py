@@ -55,5 +55,9 @@ KEYWORDS = {
 	"while": TokenType.While,
 	"def": TokenType.FuncDecl,
 	"print": TokenType.Function,
-	"read": TokenType.Function
+	"read": TokenType.Function,
+    "sin": TokenType.Function,
+    "min": TokenType.Function,
+    "max": TokenType.Function,
+    "testFunc": TokenType.Function
 }
