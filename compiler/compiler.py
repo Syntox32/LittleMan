@@ -46,7 +46,7 @@ class ScriptCompiler(Executor):
 			(exprs, asm) = self._parse(self.tokens)
 			#print(asm)
 
-			a = Assembler()
+			a = Assembler(mem_size=1000)
 			a.load(asm)
 
 			with open("gen.man", "w") as f:

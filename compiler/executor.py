@@ -49,7 +49,7 @@ class Executor():
                 print(str(ac))
 
             # Stop/Coffee break
-            elif instr == mem_size:      # HLT
+            elif instr == 000:      # HLT
                 running = False
 
             # Error
