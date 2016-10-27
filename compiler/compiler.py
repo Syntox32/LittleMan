@@ -101,7 +101,7 @@ class ScriptCompiler(Executor):
             #    return False
             for idx, val in enumerate(tokens):
                 #print(str(val) + " == " + str(expr.tokens[idx].token))
-                if str(val) != str(tokens[idx]):
+                if str(val) != str(expr.tokens[idx].token):
                     return False
             return True
 
@@ -168,27 +168,27 @@ class ScriptCompiler(Executor):
 
             if var_name in var_mem: # Exists
                 if value_is_name:
-                    #v = var_mem[var_name]
+                    v = var_mem[var_name]
                     if add:
-                    #	v += var_mem[str(var_val)]
+                        v += var_mem[str(var_val)]
                         ASM.do_add(var_name, str(var_val))
                     else:
-                    #	v -= var_mem[str(var_val)]
+                        v -= var_mem[str(var_val)]
                         ASM.do_sub(var_name, str(var_val))
-                    #var_mem[var_name] = v
+                    var_mem[var_name] = v
                 else:
-                    #v = var_mem[var_name]
+                    v = var_mem[var_name]
                     if add:
                         mem_name = str(ASM.curr_line + 1)
                         ASM.add_mem(mem_name, int(var_val))
                         ASM.do_add(var_name, mem_name)
-                        #v += int(var_val)
+                        v += int(var_val)
                     else:
                         mem_name = str(ASM.curr_line + 1)
                         ASM.add_mem(mem_name, int(var_val))
                         ASM.do_sub(var_name, mem_name)
-                        #v -= int(var_val)
-                    #var_mem[var_name] = v
+                        v -= int(var_val)
+                    var_mem[var_name] = v
 
         def parse_func_call(ex):
             if str(ex.tokens[0].value) == "print":
@@ -199,6 +199,13 @@ class ScriptCompiler(Executor):
                 var_name = str(ex.tokens[2].value)
                 ASM.do_read(var_name)
 
+        def precedence(token):
+            if token.token == TokenType.Add or token.token == TokenType.Sub:
+                return 1
+            elif token.token == TokenType.Mul or token.token == TokenType.Div:
+                return 2
+            return 0
+
         def apply_shunting_yard(tokens):
             output = []
             op = Stack()
@@ -206,26 +213,26 @@ class ScriptCompiler(Executor):
             for t in tokens:
                 v = t.value
 
-                if t.token == TokenType.Identifier :
+                if t.token == TokenType.Function:
                     output.append(t)
 
-                elif t.token == TokenType.Function:
+                elif t.token == TokenType.Identifier and t.value.isdigit():
                     output.append(t)
-
-                elif t.token == TokenType.Add or t.token == TokenType.Sub:
-                    op.push(t)
+                elif t.token == TokenType.Identifier:
+                    output.append(Token(var_mem[str(t.value)], t.token))
 
                 elif t.token == TokenType.Seperator:
                     if op.size != 0:
                         while op.peek().token != TokenType.LParen:
                             output.append(op.pop())
 
-                elif t.token == TokenType.Mul or t.token == TokenType.Div:
-                    # if the new token has an equal presedence to the one that is
-                    # on the operator stack, we move it to the output queue
+                elif t.token == TokenType.Add or \
+                        t.token == TokenType.Sub or \
+                        t.token == TokenType.Mul or \
+                        t.token == TokenType.Div:
                     if op.size() != 0:
-                        if op.peek().token == TokenType.Mul or op.peek().token == TokenType.Div:
-                            output.append(op.pop())
+                        while op.size() > 0 and precedence(t) <= precedence(op.peek()):
+                                output.append(op.pop())
                     op.push(t)
 
                 elif t.token == TokenType.LParen:
@@ -240,18 +247,18 @@ class ScriptCompiler(Executor):
                         if op.peek().token == TokenType.Function:
                             output.append(op.pop())
 
-                print("Output: {0} \t Stack: {1}".format(
-                    ",".join([str(t.value) for t in output]),
-                    ",".join([str(t.value) for t in op.items]),
-                ))
+                #print("Output: {0} \t Stack: {1}".format(
+                #    ",".join([str(t.value) for t in output]),
+                #    ",".join([str(t.value) for t in op.items]),
+                #))
 
             while op.size() != 0:
                 output.append(op.pop())
 
-            print("Output: {0} \t Stack: {1}".format(
-                ",".join([str(t.value) for t in output]),
-                ",".join([str(t.value) for t in op.items]),
-            ))
+            #print("Output: {0} \t Stack: {1}".format(
+            #    ",".join([str(t.value) for t in output]),
+            #    ",".join([str(t.value) for t in op.items]),
+            #))
 
             return output
 
@@ -289,13 +296,12 @@ class ScriptCompiler(Executor):
                     var1 = stack.pop()
                     res = eval_operator(t.token, var1, var2)
                     stack.push(Token(res, TokenType.Identifier))
-                    pass
                 else:
                     print("ERROR: " + token.value)
             if stack.size() == 1:
                 return stack.pop()
             else:
-                print("ERROR: Something shitty happend")
+                print("ERROR: Something shitty happend.")
 
 
         # e.g.: var = ...
@@ -304,9 +310,10 @@ class ScriptCompiler(Executor):
         # POC first try at evaluating expressions
         def eval_expr(tokens):
             print(" ".join([str(t.value) for t in tokens]))
-            rpn_notation= apply_shunting_yard(tokens)
+            rpn_notation = apply_shunting_yard(tokens)
             result = apply_rpn(rpn_notation).value
             print("RESULT: " + str(result))
+            return result
 
         for ex in exprs:
             print("debug: {0}".format(" ".join([str(t.value) for t in ex.tokens])))
@@ -314,16 +321,19 @@ class ScriptCompiler(Executor):
             if match_assignment(ex):
                 # TODO: Actually check that this is an expression
                 # and not a variable assigment
-                val = eval_expr(ex.tokens[2:])
+                var_name = str(ex.tokens[0].value)
+                val = int(eval_expr(ex.tokens[2:]))
+                var_mem[var_name] = val
+                ASM.add_mem(var_name, val)
                 print("match_assignment == True\n")
 
             #if is_var_assignment(ex):
                 #print("\tassuming variable assignment")
             #    parse_var_assignment(ex)
 
-            #if is_func_call(ex):
-            #    print("\tassuming function call")
-            #    parse_func_call(ex)
+            if is_func_call(ex):
+                print("\tassuming function call")
+                parse_func_call(ex)
 
             #if is_var_add_var(ex) or is_var_sub_var(ex):
             #    print("\tassuming add/sub operation on variable")
