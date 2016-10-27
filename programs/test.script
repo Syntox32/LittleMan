@@ -1,0 +1,34 @@
+
+var = 10;
+foo = 12;
+bar = 5;
+
+print(var);
+
+var += 3;
+foo = 10;
+
+print(var);
+
+var = 3331111777;
+
+print(var);   # testing test test
+read(var);
+print(var);
+
+# var = bar;
+# var -= foo;
+
+test = 10 + 1 / 2 * 2 - 200;
+# print(var); # more testing test
+# bar -= 10;
+
+# print(bar);
+# bar += 20;
+# print(bar);
+
+var = math.someFunc(param1, param2);
+# func funcName(int i, int x) {
+#   int what = 0;
+#   print(what);
+# }
