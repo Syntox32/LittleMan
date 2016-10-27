@@ -1,7 +1,7 @@
 
 class Executor():
 
-    def execute_bytecode(self, mem):
+    def execute_bytecode(self, mem, memory_size=100):
         """
         Run and execute Little Man instruction codes.
         """
@@ -9,6 +9,7 @@ class Executor():
         ac = 0
         pc = 0
         running = True
+        mem_size = memory_size
 
         print("Program Output:")
 
@@ -19,30 +20,40 @@ class Executor():
             instr = mem[pc]
             pc += 1
 
-            # Execute
-            if instr // 100 == 1:   # ADD
-                ac += mem[instr % 100]
-            elif instr // 100 == 2: # SUB
-                ac -= mem[instr % 100]
-            elif instr // 100 == 3: # STA
-                mem[instr % 100] = ac
-            elif instr // 100 == 5: # LDA
-                ac = mem[instr % 100]
-            elif instr // 100 == 6: # BRA
-                pc = instr % 100
-            elif instr // 100 == 7: # BRZ
+            # Add, Subtract
+            if instr // mem_size == 1:   # ADD
+                ac += mem[instr % mem_size]
+            elif instr // mem_size == 2: # SUB
+                ac -= mem[instr % mem_size]
+
+            # Store and load
+            elif instr // mem_size == 3: # STA
+                mem[instr % mem_size] = ac
+            elif instr // mem_size == 5: # LDA
+                ac = mem[instr % mem_size]
+
+            # Branch operations
+            elif instr // mem_size == 6: # BRA
+                pc = instr % mem_size
+            elif instr // mem_size == 7: # BRZ
                 if ac == 0:
-                    pc = instr % 100
-            elif instr // 100 == 8: # BRP
+                    pc = instr % mem_size
+            elif instr // mem_size == 8: # BRP
                 if ac > 0:
-                    pc = instr % 100
-            elif instr == 901:      # INP
+                    pc = instr % mem_size
+
+            # I/O
+            elif instr == (9 * mem_size) + 1:  # INP
                 ac = int(input("Input: "))
-            elif instr == 902:      # OUT
-                print("> " + str(ac))
-            elif instr == 000:      # HLT
+            elif instr == (9 * mem_size) + 2:  # OUT
+                print(str(ac))
+
+            # Stop/Coffee break
+            elif instr == mem_size:      # HLT
                 running = False
-            else:                   # ERROR
+
+            # Error
+            else:                        # ERROR
                 print("Error! Unknown instruction: \'{0}\'".format(instr))
                 running = False
 
