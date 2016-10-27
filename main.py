@@ -1,5 +1,5 @@
 import sys, os
-from compiler import Assembler, ScriptCompiler
+import compiler
 
 if __name__ == "__main__":
 	if len(sys.argv) < 2:
@@ -9,8 +9,8 @@ if __name__ == "__main__":
 	ext = os.path.splitext(sys.argv[1])[1]
 
 	if ext == ".man": # Compile assembly
-		a = Assembler()
+		a = compiler.Assembler()
 		a.run(sys.argv[1])
 	elif ext == ".script": # Compile script
-		s = ScriptCompiler()
+		s = compiler.ScriptCompiler()
 		s.compile(sys.argv[1])
