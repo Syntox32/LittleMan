@@ -97,10 +97,7 @@ class ScriptCompiler(Executor):
 
         # returns true or false
         def expr_matches(expr, tokens):
-            #if len(expr.tokens) != len(tokens):
-            #    return False
             for idx, val in enumerate(tokens):
-                #print(str(val) + " == " + str(expr.tokens[idx].token))
                 if str(val) != str(expr.tokens[idx].token):
                     return False
             return True
@@ -123,72 +120,6 @@ class ScriptCompiler(Executor):
                                                         TokenType.Sub,
                                                         TokenType.Equals,
                                                         TokenType.Identifier])
-
-        def parse_var_assignment(ex):
-            var_name = str(ex.tokens[0].value)
-            var_val = ex.tokens[2].value
-            value_is_name = False
-
-            try:
-                value_is_name = str(var_val) in var_mem
-            except: pass
-
-            if var_name in var_mem: # Exists
-                if value_is_name:
-                    var_mem[var_name] = var_mem[str(var_val)]
-                    # add value of var_val to var_name
-                    #ASM.do_add(var_name, var_val)
-                    ASM.do_assignment(var_val, var_name)
-                else:
-                    var_mem[var_name] = int(var_val)
-                    mem_name = str(ASM.curr_line + 1)
-                    ASM.add_mem(mem_name, int(var_val))
-                    ASM.do_assignment(mem_name, var_name)
-            else: # If it does not exist, we update it with the new value
-                if value_is_name:
-                    var_mem.update({ var_name: var_mem[str(var_val)] })
-                    # add new memory equal to the value of var_val
-                    ASM.add_mem(var_name, var_mem[str(var_val)])
-                    #asm.do_add(var_name, var_val) # ASM
-                else:
-                    var_mem.update({ var_name: int(var_val) })
-                    ASM.add_mem(var_name, int(var_val))
-
-            # MEM $init_value
-
-        def parse_add_sub(ex):
-            var_name = str(ex.tokens[0].value)
-            var_val = ex.tokens[3].value
-            value_is_name = False
-            add = ex.tokens[1].token == TokenType.Add
-
-            try:
-                value_is_name = str(var_val) in var_mem
-            except: pass
-
-            if var_name in var_mem: # Exists
-                if value_is_name:
-                    v = var_mem[var_name]
-                    if add:
-                        v += var_mem[str(var_val)]
-                        ASM.do_add(var_name, str(var_val))
-                    else:
-                        v -= var_mem[str(var_val)]
-                        ASM.do_sub(var_name, str(var_val))
-                    var_mem[var_name] = v
-                else:
-                    v = var_mem[var_name]
-                    if add:
-                        mem_name = str(ASM.curr_line + 1)
-                        ASM.add_mem(mem_name, int(var_val))
-                        ASM.do_add(var_name, mem_name)
-                        v += int(var_val)
-                    else:
-                        mem_name = str(ASM.curr_line + 1)
-                        ASM.add_mem(mem_name, int(var_val))
-                        ASM.do_sub(var_name, mem_name)
-                        v -= int(var_val)
-                    var_mem[var_name] = v
 
         def parse_func_call(ex):
             if str(ex.tokens[0].value) == "print":
@@ -282,16 +213,13 @@ class ScriptCompiler(Executor):
 
         def apply_rpn(token_list):
             stack = Stack()
-            #tokens = Stack()
-            #for t in token_list: tokens.push(t)
 
-            #while tokens.size() > 1:
-                #t = tokens.pop()
             for t in token_list:
                 if t.token == TokenType.Identifier:
                     stack.push(t)
                 elif is_operator(t):
                     # take N arguments off the stack
+                    # TODO: Expand to include functions
                     var2 = stack.pop()
                     var1 = stack.pop()
                     res = eval_operator(t.token, var1, var2)
@@ -319,25 +247,16 @@ class ScriptCompiler(Executor):
             print("debug: {0}".format(" ".join([str(t.value) for t in ex.tokens])))
 
             if match_assignment(ex):
-                # TODO: Actually check that this is an expression
-                # and not a variable assigment
                 var_name = str(ex.tokens[0].value)
                 val = int(eval_expr(ex.tokens[2:]))
                 var_mem[var_name] = val
                 ASM.add_mem(var_name, val)
                 print("match_assignment == True\n")
 
-            #if is_var_assignment(ex):
-                #print("\tassuming variable assignment")
-            #    parse_var_assignment(ex)
-
             if is_func_call(ex):
                 print("\tassuming function call")
                 parse_func_call(ex)
 
-            #if is_var_add_var(ex) or is_var_sub_var(ex):
-            #    print("\tassuming add/sub operation on variable")
-            #    parse_add_sub(ex)
 
         assembly = ASM.build()
         ASM.debug_print()
