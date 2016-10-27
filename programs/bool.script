@@ -1,0 +1,12 @@
+
+var = 1;
+tet = 0;
+done = 111222333222111;
+
+plswork = 2 * 10 * (4 + var * (2 + 1)); # Should be 140
+
+if (plswork == 140) {
+	print(plswork);
+}
+
+print(done);

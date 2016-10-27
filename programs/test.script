@@ -1,6 +1,8 @@
 
 var = 1;
 
+tet = 0;
+
 plswork = 2 * 10 * (4 + var * (2 + 1));
 
 print(plswork);
