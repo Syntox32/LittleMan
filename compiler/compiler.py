@@ -28,36 +28,19 @@ class ScriptCompiler(Executor):
 
         if ext == ".script":
             # Read file contents and interpret it
-
             t = Tokenizer()
             t.load_from_file(path)
 
             self.tokens = t.tokenize()
-
-            #print("\nTokens:")
-            #for t in self.tokens: print("   {0}\t\t{1}".format(str(t.value), str(t.token)))
-
-            #with open(path, "r") as f:
-            #	contents = f.read()
-
-            #self.reader = StringReader(contents)
-
-            #self.tokens = []
-
-            # Do the actual compilation
-
-            #self._tokenize()
             (exprs, asm) = self._parse(self.tokens)
-            #print(asm)
 
             a = Assembler(mem_size=100)
             a.load(asm)
 
-            with open("gen.man", "w") as f:
-                f.write(asm)
+            # write generated assembly to file
+            # with open("gen.man", "w") as f: f.write(asm)
 
             # Print out some debug values
-
             if exprs is not None:
                 print("\nExpressions:")
                 for idx, val in enumerate(exprs):
@@ -65,9 +48,7 @@ class ScriptCompiler(Executor):
 
             #print("\nTokens:")
             #for t in self.tokens: print("   {0}\t\t{1}".format(str(t.value), str(t.token)))
-
-        else:
-            # Error unknown extension
+        else: # unknown extension
             print("I don't recognize that extension: \'{0}\'".format(ext))
 
 
@@ -200,8 +181,6 @@ class ScriptCompiler(Executor):
                         or token.token == TokenType.Div \
 
         def eval_operator(token, left, right):
-            #print(str(left.value))
-            #print(str(right.value))
             if token == TokenType.Add:
                 return int(left.value) + int(right.value)
             elif token == TokenType.Sub:
