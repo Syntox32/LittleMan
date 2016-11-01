@@ -12,12 +12,21 @@ class Expression:
         self.tokens = [] if tokens is None else tokens
         self.expressions = [] if expressions is None else expressions
 
+    def __str__(self):
+        if len(self.tokens) == 0: return "empty"
+        return " ".join([str(t.value) for t in self.tokens])
+
+
 class Stack:
     def __init__(self): self.items = []
     def push(self, item): self.items.append(item)
     def pop(self): return self.items.pop()
     def peek(self): return self.items[len(self.items)-1]
     def size(self): return len(self.items)
+
+class ExpressionSolver:
+    def __init__(self): pass
+    def solve_expr(self, expression, variables, functions): pass
 
 class ScriptCompiler(Executor):
     def __init__(self): pass
@@ -51,33 +60,105 @@ class ScriptCompiler(Executor):
         else: # unknown extension
             print("I don't recognize that extension: \'{0}\'".format(ext))
 
+    def _print_expr_tree(self, exprs, prefix=""):
+        if len(exprs) == 0: return
+        # recursivly print expression
+        #for e in exprs:
+        #    print("\t" + str(e))
+        idx = 0
+        curr = exprs[idx]
+        while curr != None:
+            print("{0}{1}".format(prefix, curr))
+            if len(curr.expressions) != 0:
+                self._print_expr_tree(curr.expressions, prefix + "  ")
+            if idx + 1 < len(exprs):
+                idx += 1
+                curr = exprs[idx]
+            else:
+                curr = None
+
 
     def _parse(self, tokens):
         exprs = [] # list of ScriptAsmExpressions
         assembly = ""
         var_mem = {}
-        in_expr = False
+        in_block = False
         ASM = AssemblyBuilder()
 
-        # Create a list of expressions before doing any compilation
-        temp = [] # List of tokens
-        for t in tokens:
-            #temp.append(t)
-            if t.token == TokenType.SemiColon:
-                exprs.append(Expression(temp))
-                temp = []
-                in_expr = False
-            else:
-                temp.append(t)
-                in_expr = True
+        idx = 0
+        temp = 0
+        level = 0
+        temp = []
+        block_expr = Expression()
+        expr_stack = Stack()
 
-        expect_equal = False
-        expect_identifier = False
-        expect_var_value = False
-        curr_var_name = ""
+        # helper functions
+        peek = lambda: tokens[idx + 1]
+        can_peek = lambda: idx + 1 < len(tokens)
+
+        while idx < len(tokens):
+            # increment
+            t = tokens[idx]
+            idx += 1
+
+            # start parsing tokens
+
+            if t.token == TokenType.FuncStart: # {
+                # discard token
+                # increment level
+                level += 1
+
+                # init an expression on the stack
+                e = Expression(temp)
+                expr_stack.push(e)
+                temp = []
+
+                # set inblock to true
+                if not in_block: in_block = True
+                else: pass # already in a block
+
+            elif t.token == TokenType.FuncEnd: # }
+                # discard token
+                # increment level
+                level -= 1
+
+                if level > 0:
+                    curr = expr_stack.pop()
+                    prev = expr_stack.pop()
+                    prev.expressions.append(curr)
+                    expr_stack.push(prev)
+                elif level == 0:
+                    in_block = False
+                    curr = expr_stack.pop()
+                    # we're now at the lowest level and there is no
+                    # other block on the stack (...shouldn't be atleast).
+                    exprs.append(curr)
+                else:
+                    pass # error?
+
+            elif t.token == TokenType.SemiColon:
+                # discard token
+                # now turn temp list into an expression
+                e = Expression(temp)
+                temp = []
+
+                if in_block:
+                    curr = expr_stack.pop()
+                    curr.expressions.append(e)
+                    expr_stack.push(curr)
+                else:
+                    exprs.append(e)
+
+            else: # just add the token to the temp list
+                temp.append(t)
+
+        self._print_expr_tree(exprs)
+
+        return 1000
 
         # returns true or false
         def expr_matches(expr, tokens):
+            if len(expr.tokens) < len(tokens): return False
             for idx, val in enumerate(tokens):
                 if str(val) != str(expr.tokens[idx].token):
                     return False

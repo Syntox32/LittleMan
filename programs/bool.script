@@ -1,12 +1,50 @@
 
+true = 1;
+false = 0;
+
 var = 1;
 tet = 0;
 done = 111222333222111;
 
 plswork = 2 * 10 * (4 + var * (2 + 1)); # Should be 140
 
-if (plswork == 140) {
+if (true) {
 	print(plswork);
+	print(var);
+
+	if (false) {
+		print(moreWork);
+	}
 }
 
-print(done);
+{
+	print(done);
+}
+
+if (true) {
+	print(plswork);
+
+	if (false) {
+		print(var);
+	}
+
+	doShit();
+}
+
+lolkek = 12121;
+
+
+#0. if true
+#	print
+#1. if false
+#	print
+
+#pop
+
+#add 1. to 0. expressions ->
+
+#0. if true
+#	print
+#	if false
+#		print
+#	doShit()
