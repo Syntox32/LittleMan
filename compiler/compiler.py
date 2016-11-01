@@ -57,25 +57,15 @@ class ScriptCompiler(Executor):
             else:
                 curr = None
 
-
-    def _parse(self, tokens):
-        exprs = [] # list of ScriptAsmExpressions
-        assembly = ""
-        var_mem = {}
-        in_block = False
-        ASM = AssemblyBuilder()
-        es = ExpressionSolver()
-
-        idx = 0
-        temp = 0
-        level = 0
+    def _parse_expr_recursive(self, tokens):
+        exprs = []
         temp = []
-        block_expr = Expression()
         expr_stack = Stack()
+        block_expr = None
 
-        # helper functions
-        peek = lambda: tokens[idx + 1]
-        can_peek = lambda: idx + 1 < len(tokens)
+        in_block = False
+        level = 0
+        idx = 0
 
         while idx < len(tokens):
             # increment
@@ -133,7 +123,18 @@ class ScriptCompiler(Executor):
             else: # just add the token to the temp list
                 temp.append(t)
 
-        self._print_expr_tree(exprs)
+        self._print_expr_tree(exprs) # debug
+
+        return exprs
+
+
+    def _parse(self, tokens):
+        assembly = ""
+        var_mem = {}
+        ASM = AssemblyBuilder()
+        es = ExpressionSolver()
+
+        exprs = self._parse_expr_recursive(tokens)
 
         # returns true or false
         def expr_matches(expr, tokens):
