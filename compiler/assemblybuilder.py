@@ -3,7 +3,7 @@ class AssemblyBuilder():
     """
     Class to help with generating Little Man assembly code
     """
-    
+
     def __init__(self):
         self.instructions = []
         self.memory = {}
@@ -17,6 +17,18 @@ class AssemblyBuilder():
         self.instructions.append("BRA " + str(self.curr_line + 2) + "   # assign memory")
         self.instructions.append("MEM " + str(val))
         self.curr_line += 2
+
+    def add_if(self, eval_value_name):
+        # BRA jump to
+        # BRZ jump if zero
+        #
+        #   BRZ mem # if zero skip this bit
+        #
+        line = self.memory[str(eval_value_name)]["line"]
+        self.instructions.append("LDA " + str(line) + "   # load if eval")
+        self.curr_line += 1
+        self.instructions.append("BRP " +  str(self.curr_line + 1) + "   # check zero")
+        self.curr_line += 1
 
     def do_print(self, name):
         # 0: LDA &name

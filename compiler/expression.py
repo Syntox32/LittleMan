@@ -10,9 +10,10 @@ class Stack:
 
 
 class Expression:
-    def __init__(self, tokens=None, expressions=None):
+    def __init__(self, tokens=None, expressions=None, value=0):
         self.tokens = [] if tokens is None else tokens
         self.expressions = [] if expressions is None else expressions
+        self.value = 0
 
     def __str__(self):
         if len(self.tokens) == 0: return "empty"
@@ -75,7 +76,7 @@ class ExpressionSolver:
             elif t.token == TokenType.Identifier: # token is a variable identifier
                 # TODO: Find memory value before entering this Function
                 #       just to remove the extra parameter?
-                output.append(Token(variables[str(t.value)], t.token))
+                output.append(Token(variables[str(t.value)]["value"], t.token))
 
             elif t.token == TokenType.Seperator:
                 if op.size != 0:

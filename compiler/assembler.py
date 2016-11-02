@@ -80,8 +80,8 @@ class Assembler(Executor):
             elif len(values) == 2: # Expressions with a address parameter
                 token = values[0]
                 adr = int(values[1])
-                if int(adr) > 99:
-                    print("Error! Memory address space exceeded: \'{0}\'".format(adr))
+                #if int(adr) > 99:
+                #   print("Error! Memory address space exceeded: \'{0}\'".format(adr))
                 exprs.append(AsmExpression(token, adr))
             else: # Error
                 print("Error! Invalid number of values({1}: \'{0}\'".format(len(values), line))
