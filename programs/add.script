@@ -1,0 +1,23 @@
+
+foo = 10;
+bar = 0;
+constant = 2 * 10 * (4 + 10 * (2 + 1));
+print(constant);
+
+read(bar);
+print(bar);
+
+if (bar) {
+    print(1337);
+    baz = foo + bar;
+    print(baz);
+
+    test1 = 0;
+    read(test1);
+
+    if (test1) {
+        print(14441);
+    }
+}
+
+print(foo);

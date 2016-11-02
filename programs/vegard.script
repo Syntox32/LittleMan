@@ -1,0 +1,25 @@
+
+#boobs = 80085;
+#leet = 1337;
+#test = 5;
+
+var = 50;
+#print(var);
+
+custom = 0;
+read(custom);
+
+foo = 0;
+print(foo);
+
+foo = custom + var;
+print(foo);
+
+bar = 10;
+foo = foo - bar;
+print(foo);
+
+#var = var + leet;
+#var = var + leet
+
+#print(var);

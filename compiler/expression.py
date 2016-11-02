@@ -1,5 +1,7 @@
+import random
 from compiler.token import TokenType, SYMBOLS, KEYWORDS
 from compiler.tokenizer import Token
+from compiler.instruction import Instruction, AsmExpressionContainer, JumpFlag
 
 class Stack:
     def __init__(self): self.items = []
@@ -36,6 +38,83 @@ class ExpressionSolver:
             print("eval result: error") # debug
             return None
 
+    def gen_runtime_expression(self, tokens, memory, functions=None, *, result_var=None):
+        rpn_notation = self._apply_shunting_yard(tokens, None, substitute_vars=False)
+        memory = {}
+
+        def get_name(static_object=[]):
+            if len(static_object) == 0: static_object.append(random.randint(1000, 9999))
+            s = str(static_object[0])
+            static_object[0] = static_object[0] + 1
+            return s
+
+        def add_mem_ref(memory, value, name=None):
+            ref_name = name if name is not None else get_name() #str(len(memory) + 1)
+            #print("ref_name: " + ref_name)
+            memory.update({ref_name: {"value":value, "line": -1}})
+            return ref_name
+
+        stack = Stack()
+        asm = AsmExpressionContainer(tokens)
+
+        print("rpn_notation: " + str([str(t.value) for t in rpn_notation]))
+        #def _gen_add(token_right, token_left): pass
+
+        temp = add_mem_ref(memory, 0, "temp_" + get_name())
+
+        for t in rpn_notation:
+            if t.token == TokenType.Identifier:
+                stack.push(t)
+            elif self._is_operator(t):
+                # take N arguments off the stack
+                # TODO: Expand to include functions
+                var2 = stack.pop()
+                var1 = stack.pop()
+
+                if var1.value.isdigit(): #var1.token == TokenType.IntValue:
+                    var1_name = add_mem_ref(memory, var1.value)
+                else:
+                    var1_name = var1.value
+
+                if var2.value.isdigit(): #.token == TokenType.IntValue:
+                    var2_name = add_mem_ref(memory, var2.value)
+                else:
+                    var2_name = var2.value
+
+                if t.token == TokenType.Add:
+                    asm.load(var1_name)
+                    #asm.append(Instruction("LDA", variable=var1_name))
+                    asm.add(Instruction("ADD", variable=var2_name))
+                    #asm.append(Instruction("STA", variable=temp))
+                    asm.store(temp)
+                elif t.token == TokenType.Sub:
+                    asm.load(var1_name)
+                    #asm.append(Instruction("LDA", variable=var1_name))
+                    asm.add(Instruction("SUB", variable=var2_name))
+                    #asm.append(Instruction("STA", variable=temp))
+                    asm.store(temp)
+
+                #asm.load(temp)
+                #asm.store(result_var)
+
+                stack.push(Token(temp, TokenType.Identifier))
+
+                #res = self._eval_operator(t.token, var1, var2)
+                #stack.push(Token(res, TokenType.Identifier))
+            else:
+                print("ERROR: " + token.value)
+
+        asm.load(temp)
+        asm.store(result_var)
+
+        #if stack.size() == 1:
+            # return object is of type 'Token'
+        #    return stack.pop() # success
+        #else:
+        #    print("ERROR: Something bad happend.")
+
+        return (memory, asm)
+
 
     def _apply_rpn(self, token_list):
         stack = Stack()
@@ -61,7 +140,7 @@ class ExpressionSolver:
 
         return None # default, should cause error
 
-    def _apply_shunting_yard(self, tokens, variables):
+    def _apply_shunting_yard(self, tokens, variables, substitute_vars=True):
         output = []
         op = Stack()
 
@@ -72,11 +151,20 @@ class ExpressionSolver:
                 output.append(t)
 
             elif t.token == TokenType.Identifier and t.value.isdigit():
-                output.append(t)
+                temp = t
+                temp.token == TokenType.IntValue
+                output.append(temp)
             elif t.token == TokenType.Identifier: # token is a variable identifier
                 # TODO: Find memory value before entering this Function
                 #       just to remove the extra parameter?
-                output.append(Token(variables[str(t.value)]["value"], t.token))
+                if substitute_vars:
+                    temp = t
+                    temp.token == TokenType.IntValue
+                    output.append(Token(variables[str(t.value)]["value"], t.token))
+                else:
+                    temp = t
+                    temp.token == TokenType.Identifier
+                    output.append(temp)
 
             elif t.token == TokenType.Seperator:
                 if op.size != 0:
