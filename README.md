@@ -1,10 +1,17 @@
 # Little Man Compiler & Assembler
 
+This projects implements a Little Man Computer assembler and a high-level programming language compiler.
+
+This was written for fun as an educational exercise, to understand a bit more of how a computer
+interprets rudimentary instructions, and how compilers are built.
+
 ## Usage
 
-`python3 main.py programs/bool.script`
+`python3 main.py <file>`
 
-The script need the `.script` extension
+Script files need the `.script` extension.
+
+If you want to run assembler written by hand, use the `.man` extension.
 
 ## Assembler language
 
@@ -25,14 +32,14 @@ HLT
 ## Scripting language
 
 These things are sort of working:
-	- Variable assigmnent (but re-assignment is not working at the moment..).
-	- Constant expressions can be evaluated.
-	- "Runtime" expressions work with the `+` and `-` operator. e.g.: `bar = foo + 3;`
-	- `if` statements are working with booleans, so `1` is `true`, this means the if-statement will excecute.
-	- Printing of variables.
-	- Reading into variables.
-	- Nested if- and block-statements are working.
-	- Comments and inline-comments are working.
+	1. Variable assigmnent (but re-assignment is not working at the moment..).
+	2. Constant expressions can be evaluated.
+	3. "Runtime" expressions work with the `+` and `-` operator. e.g.: `bar = foo + 3;`
+	4. `if` statements are working with booleans, so `1` is `true`, this means the if-statement will excecute.
+	5. Printing of variables.
+	6. Reading into variables.
+	7. Nested if- and block-statements are working.
+	8. Comments and inline-comments are working.
 
 Example:
 ```python
