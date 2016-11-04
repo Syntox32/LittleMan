@@ -3,7 +3,6 @@ import os
 from compiler.executor import Executor
 from compiler.tokenizer import Tokenizer, Token
 from compiler.token import TokenType, SYMBOLS, KEYWORDS
-from compiler.assemblybuilder import AssemblyBuilder
 from compiler.assembler import Assembler
 from compiler.expression import Stack, Expression, ExpressionSolver
 from compiler.instruction import Instruction, AsmExpressionContainer, JumpFlag
@@ -133,7 +132,6 @@ class ScriptCompiler(Executor):
     def _parse(self, tokens):
         assembly = ""
         var_mem = {}
-        ASM = AssemblyBuilder()
         es = ExpressionSolver()
 
         exprs = self._parse_expr_recursive(tokens)
@@ -153,15 +151,6 @@ class ScriptCompiler(Executor):
                     return False
             return True
 
-        def parse_func_call(ex):
-            if str(ex.tokens[0].value) == "print":
-                var_name = str(ex.tokens[2].value)
-                ASM.do_print(var_name)
-
-            elif str(ex.tokens[0].value) == "read":
-                var_name = str(ex.tokens[2].value)
-                ASM.do_read(var_name)
-
         # e.g.: var = ...
         match_assignment = lambda x: expr_matches(x, [TokenType.Identifier, TokenType.Equals])
         match_condition = lambda x: expr_matches(x, [TokenType.Conditional, TokenType.LParen])
@@ -169,6 +158,7 @@ class ScriptCompiler(Executor):
 
         stack = Stack()
         asm_list = [] # AsmExpression
+
         memory = {}
         line_count = 0
 
