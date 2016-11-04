@@ -1,16 +1,29 @@
 # -*- coding: utf-8 -*-
-import os
+import os, inspect
 from compiler.executor import Executor
 from compiler.tokenizer import Tokenizer, Token
 from compiler.token import TokenType, SYMBOLS, KEYWORDS
 from compiler.assembler import Assembler
 from compiler.expression import Stack, Expression, ExpressionSolver
 from compiler.instruction import Instruction, AsmExpressionContainer, JumpFlag
+from compiler.memory import Memory
+from compiler.utils import Utils
 
 class ScriptCompiler(Executor):
-    def __init__(self): pass
 
-    def compile(self, filename):
+    def __init__(self):
+        self.debug = False
+        self.mem = Memory()
+        self.solver = ExpressionSolver()
+
+    def compile(self, filename, *,
+            debug=False,
+            write_assembler_to_file=False,
+            write_filename=None):
+        self.debug = debug
+        self.write_assembler_to_file = write_assembler_to_file
+        self.write_filename = write_filename
+
         path = os.path.abspath(filename)
         ext = os.path.splitext(path)[1]
 
@@ -41,9 +54,6 @@ class ScriptCompiler(Executor):
 
     def _print_expr_tree(self, exprs, prefix=""):
         if len(exprs) == 0: return
-        # recursivly print expression
-        #for e in exprs:
-        #    print("\t" + str(e))
         idx = 0
         curr = exprs[idx]
         while curr != None:
@@ -128,20 +138,77 @@ class ScriptCompiler(Executor):
 
         return exprs
 
+    def _handle_assignment(self, ex):
+        """
+        if the identifier does not exist, create a reference,
+        solve the expression with the 'result_var' set to this identifier.
+
+        if the identifier exists, create a temp reference to add the
+        expression result into, then add the instructions to move the temp
+        result variable into the reference.
+        """
+        identifier = str(ex.tokens[0].value)
+        # skip the identifier and the '=' char
+        relevant_tokens = ex.tokens[2:]
+
+        asm = AsmExpressionContainer(ex)
+
+        # reference does not exist
+        if not self.mem.has_reference(identifier):
+            if len(relevant_tokens) == 1 and relevant_tokens[0].value.isdigit():
+                # one token that is an int value
+                self.mem.add_reference(identifier, relevant_tokens[0].value)
+            elif len(relevant_tokens) == 1 and self.mem.has_reference(relevant_tokens[0].value):
+                # one token that is an identifier
+                self.mem.add_reference(identifier, self.mem.get_reference(relevant_tokens[0].value))
+            else:
+                # several tokens, let's solve it
+                self.mem.add_reference(identifier)
+                (mem, instructions) = self.solver.gen_runtime_expression(relevant_tokens,
+                    self.mem.get(), result_var=identifier)
+
+                # merge memory
+                if not self.mem.merge(mem):
+                    print("Critical Error.")
+                    return None
+
+                asm.merge(instructions)
+
+        # reference exists
+        else:
+            temp = Memory.gen_temp_name()
+            self.mem.add_reference(temp)
+
+            if len(relevant_tokens) == 1 and relevant_tokens[0].value.isdigit():
+                # one token that is an int value
+                self.mem.add_reference(temp, relevant_tokens[0].value)
+            elif len(relevant_tokens) == 1 and self.mem.has_reference(relevant_tokens[0].value):
+                # one token that is an identifier
+                self.mem.add_reference(temp, self.mem.get_reference(relevant_tokens[0].value))
+            else:
+                # several tokens, let's solve it
+                (mem, instructions) = self.solver.gen_runtime_expression(relevant_tokens,
+                    self.mem.get(), result_var=temp)
+
+                # merge memory
+                if not self.mem.merge(mem):
+                    print("Critical Error.")
+                    return None
+
+                asm.merge(instructions)
+
+            # the 'temp' variabel may be loaded in the
+            # AC, but just to be sure we do it again.
+            asm.add(Instruction("LDA", variable=temp, comment="variable 're-assignment'"))
+            asm.add(Instruction("STA", variable=identifier))
+
+        return asm
+
+    #def _handle_if(self, ex): pass
 
     def _parse(self, tokens):
-        assembly = ""
-        var_mem = {}
-        es = ExpressionSolver()
-
         exprs = self._parse_expr_recursive(tokens)
         #global glb_increment_counter = 0
-
-        def get_name(lol=[]):
-            if len(lol) == 0: lol.append(0)
-            s = str(lol[0])
-            lol[0] = lol[0] + 1
-            return s
 
         # returns true or false
         def expr_matches(expr, tokens):
@@ -159,17 +226,8 @@ class ScriptCompiler(Executor):
         stack = Stack()
         asm_list = [] # AsmExpression
 
-        memory = {}
         line_count = 0
 
-        def add_mem_ref(value, name=None):
-            ref_name = name if name is not None else get_name() #str(len(memory) + 1)
-            #print("ref_name: " + ref_name)
-            memory.update({ref_name: {"value":value, "line": -1}})
-            return ref_name
-
-        def check_mem_exists(name):
-            return name in memory
 
         # recursivly invalidte all the memory
         # I hope this is a good idea
@@ -195,73 +253,15 @@ class ScriptCompiler(Executor):
                     #print(instr_list)
             return instr_list
 
+
         def handle_expr(ex):
             """
             evaluate expression and generate assembly for it
             """
-            if match_assignment(ex): # VARIABLE ASSIGMENT
-                var_name = str(ex.tokens[0].value)
-                result_variable = ""
-                #fix_mem = False
-                #if check_mem_exists(var_name):
-                temp_name = get_name() # get new temp place for the result to stay
-                add_mem_ref(0, temp_name)
-                result_variable = temp_name
-                fix_mem = True
-
-                if not check_mem_exists(var_name):
-                    add_mem_ref(0, var_name)
-                    #fix_mem = True
-                    #fix_mem = True
-                #else:
-                #    add_mem_ref(0, var_name)
-                #    result_variable = var_name
-
-                # skip the identifier and the '=' char
-                relevant_tokens = ex.tokens[2:]
-
-                asm = None
-                expr = False
-                if len(relevant_tokens) == 1:
-                    temp_var_name = get_name()
-                    add_mem_ref(relevant_tokens[0].value, temp_var_name)
-                    temp_name = temp_var_name
-                else:
-                    (mem, asm) = es.gen_runtime_expression(relevant_tokens, memory, None, result_var=result_variable)
-                    for e in asm.get_instructions(): print("\t{0}".format(str(e))) # debug
-
-                    # The runtime expression generates it's own memory,
-                    # so we have to add this to our "global" memory.
-                    for m in mem: memory.update({m: mem[m]})
-                    expr = True
-
-
-                # TODO: Check if the expression only contains constant values
-                #       then we use this method instead.
-                #val = int(es.solve_expr(ex.tokens[2:], memory, None))
-                #print("value: " + str(val))
-
-                def fix_reassignment():
-                    pass
-
-                # skip the identifier and the '=' char
-                #relevant_tokens = ex.tokens[2:]
-                #(mem, asm) = es.gen_runtime_expression(relevant_tokens, memory, None, result_var=var_name)
-                #for e in asm.get_instructions(): print("\t{0}".format(str(e)))
-                #for m in mem: memory.update({m: mem[m]})
-
-                a = AsmExpressionContainer(ex)
-                if expr:
-                    for inst in asm.get_instructions():
-                        a.add(inst)
-
-                if fix_mem:
-                    a.add(Instruction("LDA", variable=temp_name, comment="variable 're-assignment'"))
-                    a.add(Instruction("STA", variable=var_name))
-
-                return a
-
-                #return None # don't generate memory ASM from
+             # VARIABLE ASSIGMENT
+            if match_assignment(ex):
+                asm = self._handle_assignment(ex)
+                return asm
 
             elif match_condition(ex): # IF STATEMENT
                 # skip the identifier and the '=' char
@@ -282,7 +282,7 @@ class ScriptCompiler(Executor):
 
                 a.load(var_name)
                 print("a.load(var_name); == " + var_name)
-                jp_name = get_name()
+                jp_name = Memory.gen_jump_name()
                 a.add(Instruction("BRZ", jump=jp_name, comment="jump if zero"))
                 #old_count = line_count
                 #print("old count: " + str(old_count))
@@ -367,15 +367,6 @@ class ScriptCompiler(Executor):
             if idx >= len(exprs):
                 break
 
-        def gen_mem(memory):
-            jf_name = get_name()
-            o = [Instruction("BRA", jump=jf_name, comment="jump over memory")] # adr=(len(memory) + 1)
-            for m in memory:
-                o.append(Instruction("MEM", adr=(memory[m]["value"]),
-                                alias=m, comment="<{0}>".format(m)))
-            o.append(JumpFlag(jf_name))
-            return o
-
         #jump_table = {}
         def merge_jumps(instructions):
             copy = [i for i in instructions]
@@ -424,26 +415,6 @@ class ScriptCompiler(Executor):
 
             return copy
 
-        def bind_mem(instructions):
-            def find_alias(instructions, alias):
-                for idx, instr in enumerate(instructions):
-                    if instr.alias == alias:
-                        return (idx, instr)
-                return None
-
-            for inst in instructions:
-                if inst.invalidate_binding:
-                    # find memory with name "inst.variable"
-                    need = inst.variable
-                    print("need: " + need)
-                    (line_idx, mem_inst) = find_alias(instructions, need)
-                    if line_idx is None:
-                        print("Error: What the f-...this shouldnt happen...")
-                    print("\tline found: " + str(line_idx))
-                    inst.set_adr(line_idx)
-
-            return instructions
-
 
         def bind_jumps(instructions):
             def find_jump(instructions, alias):
@@ -467,10 +438,12 @@ class ScriptCompiler(Executor):
 
         def gen_assembly():
             g = []
-            mem_asm = gen_mem(memory)
+            mem_asm = self.mem.gen_asm() #gen_mem(memory)
 
-            for ma in mem_asm: # add memory table instructions
-                g.append(ma)
+            g.extend(mem_asm)
+            #print(g)
+            #for ma in mem_asm: # add memory table instructions
+            #    g.append(ma)
 
             for expr in asm_list: # get the rest of the instructions
                 g.extend(expr.get_instructions())
@@ -482,12 +455,22 @@ class ScriptCompiler(Executor):
                 print(str(idx) + ": " + str(gg))
 
             instructions = merge_jumps(g)
-            instructions = bind_mem(instructions)
+
+            instructions = self.mem.bind_mem(instructions) #bind_mem(instructions)
+
+            if instructions is None:
+                print("Critical Error!: Bindings.")
+                return None
+
             instructions = bind_jumps(instructions)
 
             return instructions
 
         assembly_instructions = gen_assembly()
+        if Utils.check_none_critical(assembly_instructions):
+            return None
+
+
         assembly = "\n".join([a.asm() for a in assembly_instructions])
         print("\nCompiled:\n")
         for idx, gg in enumerate(assembly_instructions):

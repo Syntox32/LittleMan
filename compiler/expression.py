@@ -58,6 +58,7 @@ class ExpressionSolver:
         asm = AsmExpressionContainer(tokens)
 
         print("rpn_notation: " + str([str(t.value) for t in rpn_notation]))
+        #debug("rpn_notation: " + str([str(t.value) for t in rpn_notation]))
         #def _gen_add(token_right, token_left): pass
 
         temp = add_mem_ref(memory, 0, "temp_" + get_name())

@@ -90,6 +90,15 @@ class AsmExpressionContainer:
         self.invalidate_vars = True
         self.asm.append(Instruction("STA", variable=name, comment="store variable"))
 
+    def merge(self, container):
+        if isinstance(container, list):
+            for a in container_list:
+                self.asm.extend(a.get_instructions())
+        elif isinstance(container, AsmExpressionContainer):
+            self.asm.extend(container.get_instructions())
+        else:
+            print("Compiler Error!: Cannot merge container of type: "
+                + type(container))
 
     def build(self):
         return [instr.asm() for instr in self.asm]
