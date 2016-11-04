@@ -32,14 +32,14 @@ HLT
 ## Scripting language
 
 These things are sort of working:
-1. Variable assigmnent (but re-assignment is not working at the moment..).
-2. Constant expressions can be evaluated.
-3. "Runtime" expressions work with the `+` and `-` operator. e.g.: `bar = foo + 3;`
-4. `if` statements are working with booleans, so `1` is `true`, this means the if-statement will excecute.
-5. Printing of variables.
-6. Reading into variables.
-7. Nested if- and block-statements are working.
-8. Comments and inline-comments are working.
+  1. Variable assigmnent (but re-assignment is not working at the moment..).
+  2. Constant expressions can be evaluated.
+  3. "Runtime" expressions work with the `+` and `-` operator. e.g.: `bar = foo + 3;`
+  4. `if` statements are working with booleans, so `1` is `true`, this means the if-statement will excecute.
+  5. Printing of variables.
+  6. Reading into variables.
+  7. Nested if- and block-statements are working.
+  8. Comments and inline-comments are working.
 
 Example:
 ```python
