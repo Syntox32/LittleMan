@@ -353,19 +353,13 @@ class ScriptCompiler(Executor):
 
         #print(asm_list)
 
-        idx = 0
-        while idx < len(exprs):
-            ex = exprs[idx]
+        for ex in exprs:
+            asm_expr = handle_expr(ex)
 
-            a_expr = handle_expr(ex)
-            if a_expr is not None:
-                #print("WHAAA: " + str(ex))
-                asm_list.append(a_expr)
-                #print("lolSHITIII :" + str([str(a) for a in asm_list]))
+            if Utils.check_none_critical(asm_expr):
+                Utils.debug("Compiler Error!: 'asm_expr' cannot be None.")
 
-            idx += 1
-            if idx >= len(exprs):
-                break
+            asm_list.append(asm_expr)
 
         #jump_table = {}
         def merge_jumps(instructions):
