@@ -208,8 +208,7 @@ class ScriptCompiler(Executor):
 
     def _parse(self, tokens):
         exprs = self._parse_expr_recursive(tokens)
-        #global glb_increment_counter = 0
-
+        
         # returns true or false
         def expr_matches(expr, tokens):
             if len(expr.tokens) < len(tokens): return False
@@ -226,9 +225,6 @@ class ScriptCompiler(Executor):
         stack = Stack()
         asm_list = [] # AsmExpression
 
-        line_count = 0
-
-
         # recursivly invalidte all the memory
         # I hope this is a good idea
         def invalidate(a_expr, mem):
@@ -242,15 +238,14 @@ class ScriptCompiler(Executor):
         def get_asm(a_expr, *, dry=False):
             instr_list = []
             b = a_expr.build()
-            #if not dry:
-            #    line_count += len(b)
+
             instr_list.extend(b)
             print(instr_list)
 
             if a_expr.asm_expressions is not None:
                 for aa in a_expr.asm_expressions:
                     instr_list.extend(get_asm(aa))
-                    #print(instr_list)
+
             return instr_list
 
 
@@ -271,8 +266,7 @@ class ScriptCompiler(Executor):
                     # single token with a value, should be dynamic
                     print("IT'S AN IDENTIFIER")
                     var_name = str(tokens[0].value)
-                    #if var_name in memory:
-                    #    print("lolshit")
+
                 else:
                     val = int(es.solve_expr(ex.tokens[2:len(ex.tokens)-1], memory, None))
                     ex.value = val
@@ -284,8 +278,6 @@ class ScriptCompiler(Executor):
                 print("a.load(var_name); == " + var_name)
                 jp_name = Memory.gen_jump_name()
                 a.add(Instruction("BRZ", jump=jp_name, comment="jump if zero"))
-                #old_count = line_count
-                #print("old count: " + str(old_count))
 
                 for e in ex.expressions:
                     ae = handle_expr(e)
@@ -299,22 +291,14 @@ class ScriptCompiler(Executor):
 
                 a.add(JumpFlag(jp_name))
 
-                #print("WHAT TEH FUCK: " + str(get_asm(a, dry=True)))
-                #ops_after = len(get_asm(a, dry=True))
-
-                #a.jump_if_zero(ops_after + 1)
-                #a.add("BRZ 40")
-
                 return a
 
-            elif match_func(ex): # FUNCTION CALL
+            elif match_func(ex):
                 # TODO: function lookup table with arument count and such
                 #       cause right now all we have is "print" and "read"
 
                 var_name = str(ex.tokens[2].value)
                 a = AsmExpressionContainer(ex)
-                #print("CAUSE LOL WTF :" + str(a.asm))
-                #print("EXPRESSION    :" + str(ex))
 
                 if str(ex.tokens[0].value) == "print":
                     if var_name.isdigit():
@@ -322,17 +306,10 @@ class ScriptCompiler(Executor):
                         a.load(temp_name)
                         a.do_print()
                     else:
-                        #val = memory[var_name]["value"]
-                        #temp_name = add_mem_ref(val)
-                        #a.load(temp_name)
-                        #
                         a.load(var_name)
                         a.do_print()
-                        #a.add("OUT")
-                    #ASM.do_print(var_name)
+
                 elif str(ex.tokens[0].value) == "read":
-                    #a.add("INP")
-                    #a.do_read()
                     a.add(Instruction("INP", comment="read"))
 
                     if check_mem_exists(var_name):
@@ -344,8 +321,6 @@ class ScriptCompiler(Executor):
                         a.add(Instruction("STA", variable=var_name))
                     else:
                         print("im so done with this shit")
-                        #a.store(var_name)
-                    #ASM.do_read(var_name)
 
                 return a
 
@@ -361,12 +336,10 @@ class ScriptCompiler(Executor):
 
             asm_list.append(asm_expr)
 
-        #jump_table = {}
         def merge_jumps(instructions):
             copy = [i for i in instructions]
             skip = 0
             for idx, inst in enumerate(copy):
-                #print("index: " + str(idx))
                 jumps = []
                 inc = 1
                 if skip != 0:
@@ -382,7 +355,6 @@ class ScriptCompiler(Executor):
                     nxt = copy[idx + inc]
                     while isinstance(nxt, JumpFlag):
                         jumps.append(nxt)
-                        #remove.append(idx)
                         inc += 1
                         skip += 1
                         nxt = copy[idx + inc]
@@ -393,7 +365,6 @@ class ScriptCompiler(Executor):
 
                     for jp in jumps:
                         nxt.add_jump(jp)
-                    #print("jumps: " + str([j.alias for j in jumps]))
 
             def has_jumps(inst_list):
                 for l in inst_list:
@@ -414,7 +385,6 @@ class ScriptCompiler(Executor):
             def find_jump(instructions, alias):
                 for idx, instr in enumerate(instructions):
                     if instr.is_jump_endpoint:
-                        #print("JUMPS: " + str(instr.jumps))
                         for j in instr.jumps:
                             if alias == j.alias:
                                 return (idx, instr)
@@ -432,12 +402,9 @@ class ScriptCompiler(Executor):
 
         def gen_assembly():
             g = []
-            mem_asm = self.mem.gen_asm() #gen_mem(memory)
+            mem_asm = self.mem.gen_asm()
 
             g.extend(mem_asm)
-            #print(g)
-            #for ma in mem_asm: # add memory table instructions
-            #    g.append(ma)
 
             for expr in asm_list: # get the rest of the instructions
                 g.extend(expr.get_instructions())
@@ -450,7 +417,7 @@ class ScriptCompiler(Executor):
 
             instructions = merge_jumps(g)
 
-            instructions = self.mem.bind_mem(instructions) #bind_mem(instructions)
+            instructions = self.mem.bind_mem(instructions)
 
             if instructions is None:
                 print("Critical Error!: Bindings.")
@@ -470,5 +437,4 @@ class ScriptCompiler(Executor):
         for idx, gg in enumerate(assembly_instructions):
             print(str(idx) + ": " + str(gg))
 
-        #assembly = "\n".join([a.asm() for a in gen_assembly()])
-        return [], assembly #exprs, assembly
+        return [], assembly
