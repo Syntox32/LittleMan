@@ -2,6 +2,7 @@ import random
 from compiler.token import TokenType, SYMBOLS, KEYWORDS
 from compiler.tokenizer import Token
 from compiler.instruction import Instruction, AsmExpressionContainer, JumpFlag
+from compiler.memory import Memory
 
 class Stack:
     def __init__(self): self.items = []
@@ -40,28 +41,14 @@ class ExpressionSolver:
 
     def gen_runtime_expression(self, tokens, memory, functions=None, *, result_var=None):
         rpn_notation = self._apply_shunting_yard(tokens, None, substitute_vars=False)
-        memory = {}
-
-        def get_name(static_object=[]):
-            if len(static_object) == 0: static_object.append(random.randint(1000, 9999))
-            s = str(static_object[0])
-            static_object[0] = static_object[0] + 1
-            return s
-
-        def add_mem_ref(memory, value, name=None):
-            ref_name = name if name is not None else get_name() #str(len(memory) + 1)
-            #print("ref_name: " + ref_name)
-            memory.update({ref_name: {"value":value, "line": -1}})
-            return ref_name
 
         stack = Stack()
         asm = AsmExpressionContainer(tokens)
 
-        print("rpn_notation: " + str([str(t.value) for t in rpn_notation]))
-        #debug("rpn_notation: " + str([str(t.value) for t in rpn_notation]))
-        #def _gen_add(token_right, token_left): pass
+        # print("rpn_notation: " + str([str(t.value) for t in rpn_notation])) # debug
 
-        temp = add_mem_ref(memory, 0, "temp_" + get_name())
+        temp = Memory.gen_temp_name()
+        memory.add_reference(temp)
 
         for t in rpn_notation:
             if t.token == TokenType.Identifier:
@@ -73,48 +60,35 @@ class ExpressionSolver:
                 var1 = stack.pop()
 
                 if var1.value.isdigit(): #var1.token == TokenType.IntValue:
-                    var1_name = add_mem_ref(memory, var1.value)
+                    var1_name = Memory.gen_temp_name()
+                    memory.add_reference(var1_name, var1.value)
                 else:
                     var1_name = var1.value
 
                 if var2.value.isdigit(): #.token == TokenType.IntValue:
-                    var2_name = add_mem_ref(memory, var2.value)
+                    var2_name = Memory.gen_temp_name()
+                    memory.add_reference(var2_name, var2.value)
                 else:
                     var2_name = var2.value
 
                 if t.token == TokenType.Add:
                     asm.load(var1_name)
-                    #asm.append(Instruction("LDA", variable=var1_name))
                     asm.add(Instruction("ADD", variable=var2_name))
-                    #asm.append(Instruction("STA", variable=temp))
                     asm.store(temp)
                 elif t.token == TokenType.Sub:
                     asm.load(var1_name)
-                    #asm.append(Instruction("LDA", variable=var1_name))
                     asm.add(Instruction("SUB", variable=var2_name))
-                    #asm.append(Instruction("STA", variable=temp))
                     asm.store(temp)
-
-                #asm.load(temp)
-                #asm.store(result_var)
 
                 stack.push(Token(temp, TokenType.Identifier))
 
-                #res = self._eval_operator(t.token, var1, var2)
-                #stack.push(Token(res, TokenType.Identifier))
             else:
                 print("ERROR: " + token.value)
 
         asm.load(temp)
         asm.store(result_var)
 
-        #if stack.size() == 1:
-            # return object is of type 'Token'
-        #    return stack.pop() # success
-        #else:
-        #    print("ERROR: Something bad happend.")
-
-        return (memory, asm)
+        return asm
 
 
     def _apply_rpn(self, token_list):

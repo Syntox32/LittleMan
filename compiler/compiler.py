@@ -164,14 +164,8 @@ class ScriptCompiler(Executor):
             else:
                 # several tokens, let's solve it
                 self.mem.add_reference(identifier)
-                (mem, instructions) = self.solver.gen_runtime_expression(relevant_tokens,
-                    self.mem.get(), result_var=identifier)
-
-                # merge memory
-                if not self.mem.merge(mem):
-                    print("Critical Error.")
-                    return None
-
+                instructions = self.solver.gen_runtime_expression(relevant_tokens,
+                    self.mem, result_var=identifier)
                 asm.merge(instructions)
 
         # reference exists
@@ -187,14 +181,8 @@ class ScriptCompiler(Executor):
                 self.mem.add_reference(temp, self.mem.get_reference(relevant_tokens[0].value))
             else:
                 # several tokens, let's solve it
-                (mem, instructions) = self.solver.gen_runtime_expression(relevant_tokens,
-                    self.mem.get(), result_var=temp)
-
-                # merge memory
-                if not self.mem.merge(mem):
-                    print("Critical Error.")
-                    return None
-
+                instructions = self.solver.gen_runtime_expression(relevant_tokens,
+                    self.mem, result_var=temp)
                 asm.merge(instructions)
 
             # the 'temp' variabel may be loaded in the
@@ -208,7 +196,7 @@ class ScriptCompiler(Executor):
 
     def _parse(self, tokens):
         exprs = self._parse_expr_recursive(tokens)
-        
+
         # returns true or false
         def expr_matches(expr, tokens):
             if len(expr.tokens) < len(tokens): return False
