@@ -192,7 +192,42 @@ class ScriptCompiler(Executor):
 
         return asm
 
-    #def _handle_if(self, ex): pass
+    def _handle_if(self, ex): pass
+
+    def _handle_func_call(self, ex):
+        # TODO: function lookup table with arument count and such
+        #       cause right now all we have is "print" and "read"
+
+        identifier = str(ex.tokens[2].value)
+        a = AsmExpressionContainer(ex)
+        name = str(ex.tokens[0].value)
+
+        if name == "print":
+             # identifier is a constant
+             # so we just print it
+            if identifier.isdigit():
+                temp = Memory.gen_temp_name()
+                self.mem.add_reference(temp, identifier)
+                a.load(temp)
+                a.do_print()
+            else:
+                a.load(identifier)
+                a.do_print()
+
+        elif name == "read":
+            a.do_read()
+
+            if self.mem.has_reference(identifier):
+                temp = Memory.gen_temp_name()
+                self.mem.add_reference(temp)
+
+                a.add(Instruction("STA", variable=temp, comment="store input"))
+                a.add(Instruction("LDA", variable=temp, comment="variable 're-assignment'"))
+                a.add(Instruction("STA", variable=identifier))
+            else:
+                print("im so done with this shit")
+
+        return a
 
     def _parse(self, tokens):
         exprs = self._parse_expr_recursive(tokens)
@@ -282,35 +317,8 @@ class ScriptCompiler(Executor):
                 return a
 
             elif match_func(ex):
-                # TODO: function lookup table with arument count and such
-                #       cause right now all we have is "print" and "read"
-
-                var_name = str(ex.tokens[2].value)
-                a = AsmExpressionContainer(ex)
-
-                if str(ex.tokens[0].value) == "print":
-                    if var_name.isdigit():
-                        temp_name = add_mem_ref(var_name)
-                        a.load(temp_name)
-                        a.do_print()
-                    else:
-                        a.load(var_name)
-                        a.do_print()
-
-                elif str(ex.tokens[0].value) == "read":
-                    a.add(Instruction("INP", comment="read"))
-
-                    if check_mem_exists(var_name):
-                        temp_name = get_name()
-                        print("INP temp name: *** " + temp_name)
-                        add_mem_ref(0, temp_name)
-                        a.add(Instruction("STA", variable=temp_name, comment="store input"))
-                        a.add(Instruction("LDA", variable=temp_name, comment="variable 're-assignment'"))
-                        a.add(Instruction("STA", variable=var_name))
-                    else:
-                        print("im so done with this shit")
-
-                return a
+                asm = self._handle_func_call(ex)
+                return asm
 
             return None
 
