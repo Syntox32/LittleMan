@@ -302,33 +302,7 @@ class ScriptCompiler(Executor):
 
     def _parse(self, tokens):
         exprs = self._parse_expr_recursive(tokens)
-
-        stack = Stack()
         asm_list = [] # AsmExpression
-
-        # recursivly invalidte all the memory
-        # I hope this is a good idea
-        def invalidate(a_expr, mem):
-            if a_expr.invalidate_vars:
-                a_expr.invalidate_mem(mem)
-            if a_expr.asm_expressions is not None:
-                for aa in a_expr.asm_expressions:
-                    invalidate(aa, mem)
-
-        # now gen the rest of the assembly
-        def get_asm(a_expr, *, dry=False):
-            instr_list = []
-            b = a_expr.build()
-
-            instr_list.extend(b)
-            print(instr_list)
-
-            if a_expr.asm_expressions is not None:
-                for aa in a_expr.asm_expressions:
-                    instr_list.extend(get_asm(aa))
-
-            return instr_list
-
 
         for ex in exprs:
             asm_expr = self._handle_expr(ex)
@@ -337,7 +311,6 @@ class ScriptCompiler(Executor):
                 Utils.debug("Compiler Error!: 'asm_expr' cannot be None.")
 
             asm_list.append(asm_expr)
-
 
         def merge_jumps(instructions):
             copy = [i for i in instructions]
