@@ -52,6 +52,7 @@ class ScriptCompiler(Executor):
         else: # unknown extension
             print("I don't recognize that extension: \'{0}\'".format(ext))
 
+
     def _print_expr_tree(self, exprs, prefix=""):
         if len(exprs) == 0: return
         idx = 0
@@ -67,6 +68,7 @@ class ScriptCompiler(Executor):
                 curr = exprs[idx]
             else:
                 curr = None
+
 
     def _parse_expr_recursive(self, tokens):
         exprs = []
@@ -138,6 +140,7 @@ class ScriptCompiler(Executor):
 
         return exprs
 
+
     def _handle_assignment(self, ex):
         """
         if the identifier does not exist, create a reference,
@@ -192,7 +195,42 @@ class ScriptCompiler(Executor):
 
         return asm
 
-    def _handle_if(self, ex): pass
+
+    def _handle_if(self, ex):
+        # skip the identifier and the '=' char
+        tokens = ex.tokens[2:len(ex.tokens)-1]
+        if len(tokens) == 1 and tokens[0].token == TokenType.Identifier \
+                and not tokens[0].value.isdigit():
+            # single token with a value, should be dynamic
+            #print("IT'S AN IDENTIFIER")
+            var_name = str(tokens[0].value)
+
+        else:
+            val = int(es.solve_expr(ex.tokens[2:len(ex.tokens)-1], memory, None))
+            ex.value = val
+            var_name = add_mem_ref(val)
+
+        a = AsmExpressionContainer(ex)
+
+        a.load(var_name)
+        #print("a.load(var_name); == " + var_name)
+        jp_name = Memory.gen_jump_name()
+        a.add(Instruction("BRZ", jump=jp_name, comment="jump if zero"))
+
+        for e in ex.expressions:
+            ae = self._handle_expr(e)
+            if ae is not None:
+                a.asm_expressions.append(ae)
+
+        for aa in a.asm_expressions:
+            instrs = aa.get_instructions()
+            for i in instrs:
+                a.add(i)
+
+        a.add(JumpFlag(jp_name))
+
+        return a
+
 
     def _handle_func_call(self, ex):
         # TODO: function lookup table with arument count and such
@@ -229,9 +267,11 @@ class ScriptCompiler(Executor):
 
         return a
 
-    def _parse(self, tokens):
-        exprs = self._parse_expr_recursive(tokens)
 
+    def _handle_expr(self, ex):
+        """
+        evaluate an expression and generate assembly for it
+        """
         # returns true or false
         def expr_matches(expr, tokens):
             if len(expr.tokens) < len(tokens): return False
@@ -240,10 +280,28 @@ class ScriptCompiler(Executor):
                     return False
             return True
 
-        # e.g.: var = ...
         match_assignment = lambda x: expr_matches(x, [TokenType.Identifier, TokenType.Equals])
         match_condition = lambda x: expr_matches(x, [TokenType.Conditional, TokenType.LParen])
         match_func = lambda x: expr_matches(x, [TokenType.Function, TokenType.LParen])
+
+         # VARIABLE ASSIGMENT
+        if match_assignment(ex):
+            asm = self._handle_assignment(ex)
+            return asm
+
+        elif match_condition(ex): # IF STATEMENT
+            asm = self._handle_if(ex)
+            return asm
+
+        elif match_func(ex):
+            asm = self._handle_func_call(ex)
+            return asm
+
+        return None
+
+
+    def _parse(self, tokens):
+        exprs = self._parse_expr_recursive(tokens)
 
         stack = Stack()
         asm_list = [] # AsmExpression
@@ -272,65 +330,14 @@ class ScriptCompiler(Executor):
             return instr_list
 
 
-        def handle_expr(ex):
-            """
-            evaluate expression and generate assembly for it
-            """
-             # VARIABLE ASSIGMENT
-            if match_assignment(ex):
-                asm = self._handle_assignment(ex)
-                return asm
-
-            elif match_condition(ex): # IF STATEMENT
-                # skip the identifier and the '=' char
-                tokens = ex.tokens[2:len(ex.tokens)-1]
-                if len(tokens) == 1 and tokens[0].token == TokenType.Identifier \
-                        and not tokens[0].value.isdigit():
-                    # single token with a value, should be dynamic
-                    print("IT'S AN IDENTIFIER")
-                    var_name = str(tokens[0].value)
-
-                else:
-                    val = int(es.solve_expr(ex.tokens[2:len(ex.tokens)-1], memory, None))
-                    ex.value = val
-                    var_name = add_mem_ref(val)
-
-                a = AsmExpressionContainer(ex)
-
-                a.load(var_name)
-                print("a.load(var_name); == " + var_name)
-                jp_name = Memory.gen_jump_name()
-                a.add(Instruction("BRZ", jump=jp_name, comment="jump if zero"))
-
-                for e in ex.expressions:
-                    ae = handle_expr(e)
-                    if ae is not None:
-                        a.asm_expressions.append(ae)
-
-                for aa in a.asm_expressions:
-                    instrs = aa.get_instructions()
-                    for i in instrs:
-                        a.add(i)
-
-                a.add(JumpFlag(jp_name))
-
-                return a
-
-            elif match_func(ex):
-                asm = self._handle_func_call(ex)
-                return asm
-
-            return None
-
-        #print(asm_list)
-
         for ex in exprs:
-            asm_expr = handle_expr(ex)
+            asm_expr = self._handle_expr(ex)
 
             if Utils.check_none_critical(asm_expr):
                 Utils.debug("Compiler Error!: 'asm_expr' cannot be None.")
 
             asm_list.append(asm_expr)
+
 
         def merge_jumps(instructions):
             copy = [i for i in instructions]
