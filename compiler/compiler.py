@@ -178,6 +178,9 @@ class ScriptCompiler(Executor):
             memory.update({ref_name: {"value":value, "line": -1}})
             return ref_name
 
+        def check_mem_exists(name):
+            return name in memory
+
         # recursivly invalidte all the memory
         # I hope this is a good idea
         def invalidate(a_expr, mem):
@@ -208,23 +211,48 @@ class ScriptCompiler(Executor):
             """
             if match_assignment(ex): # VARIABLE ASSIGMENT
                 var_name = str(ex.tokens[0].value)
+                result_variable = ""
+                fix_mem = False
+                if check_mem_exists(var_name):
+                    temp_name = get_name() # get new temp place for the result to stay
+                    add_mem_ref(0, temp_name)
+                    result_variable = temp_name
+                    fix_mem = True
+                else:
+                    add_mem_ref(0, var_name)
+                    result_variable = var_name
+
                 # skip the identifier and the '=' char
-                val = int(es.solve_expr(ex.tokens[2:], memory, None))
-                add_mem_ref(val, var_name)
-                print("value: " + str(val))
+                relevant_tokens = ex.tokens[2:]
+                (mem, asm) = es.gen_runtime_expression(relevant_tokens, memory, None, result_var=result_variable)
+                for e in asm.get_instructions(): print("\t{0}".format(str(e))) # debug
 
-                (mem, asm) = es.gen_runtime_expression(ex.tokens[2:], memory, None, result_var=var_name)
-                for e in asm.get_instructions():
-                    print("\t{0}".format(str(e)))
-                #print(mem)
+                # The runtime expression generates it's own memory,
+                # so we have to add this to our "global" memory.
+                for m in mem: memory.update({m: mem[m]})
 
-                for m in mem:
-                    memory.update({m: mem[m]})
-                #print(memory)
+
+                # TODO: Check if the expression only contains constant values
+                #       then we use this method instead.
+                #val = int(es.solve_expr(ex.tokens[2:], memory, None))
+                #print("value: " + str(val))
+
+                def fix_reassignment():
+                    pass
+
+                # skip the identifier and the '=' char
+                relevant_tokens = ex.tokens[2:]
+                #(mem, asm) = es.gen_runtime_expression(relevant_tokens, memory, None, result_var=var_name)
+                #for e in asm.get_instructions(): print("\t{0}".format(str(e)))
+                #for m in mem: memory.update({m: mem[m]})
 
                 a = AsmExpressionContainer(ex)
                 for inst in asm.get_instructions():
                     a.add(inst)
+
+                if fix_mem:
+                    a.add(Instruction("LDA", variable=temp_name, comment="variable 're-assignment'"))
+                    a.add(Instruction("STA", variable=var_name))
 
                 return a
 
@@ -299,8 +327,19 @@ class ScriptCompiler(Executor):
                     #ASM.do_print(var_name)
                 elif str(ex.tokens[0].value) == "read":
                     #a.add("INP")
-                    a.do_read()
-                    a.store(var_name)
+                    #a.do_read()
+                    a.add(Instruction("INP", comment="read"))
+
+                    if check_mem_exists(var_name):
+                        temp_name = get_name()
+                        print("INP temp name: *** " + temp_name)
+                        add_mem_ref(0, temp_name)
+                        a.add(Instruction("STA", variable=temp_name, comment="store input"))
+                        a.add(Instruction("LDA", variable=temp_name, comment="variable 're-assignment'"))
+                        a.add(Instruction("STA", variable=var_name))
+                    else:
+                        print("im so done with this shit")
+                        #a.store(var_name)
                     #ASM.do_read(var_name)
 
                 return a
