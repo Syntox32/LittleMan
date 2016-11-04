@@ -1,14 +1,23 @@
 
 foo = 10;
+print(foo);
 bar = 0;
-constant = 2 * 10 * (4 + 10 * (2 + 1));
-print(constant);
+
+#constant = 2 * 10 * (4 + 10 * (2 + 1));
+#print(constant);
+
+print(bar);
 
 read(bar);
+
+bar = bar + bar + 20;
+
 print(bar);
 
 if (bar) {
     print(1337);
+    print(foo);
+    print(bar);
     baz = foo + bar;
     print(baz);
 

@@ -1,50 +1,64 @@
 
 true = 1;
-false = 0;
 
 var = 1;
-tet = 0;
-done = 111222333222111;
-
+false = 0;
 plswork = 2 * 10 * (4 + var * (2 + 1)); # Should be 140
 
-if (true) {
-	print(plswork);
-	print(var);
+print(plswork);
 
-	if (false) {
-		print(moreWork);
-	}
-}
-
-{
-	print(done);
-}
+test = 0;
+#read(test);
+print(test);
+shit = 1337;
 
 if (true) {
 	print(plswork);
-
+	print(false);
+	PLSWORK = 696969;
 	if (false) {
-		print(var);
-	}
+		print(plswork);
 
-	doShit();
+		if (true) {
+			print(shit);
+
+			if (false) {
+				print(plswork);
+			}
+		}
+	}
+	print(true);
 }
 
-lolkek = 12121;
+print(plswork);
 
+tet = 0;
+done = 12232;
 
-#0. if true
-#	print
-#1. if false
-#	print
-
-#pop
-
-#add 1. to 0. expressions ->
-
-#0. if true
-#	print
-#	if false
-#		print
-#	doShit()
+#
+#} else {
+#	print(var);
+#}
+#
+#if (true) {
+#	print(plswork);
+#	print(var);
+#
+#	if (false) {
+#		print(moreWork);
+#	}
+#}
+#
+#{
+#	print(done);
+#}
+#
+#if (true) {
+#	print(plswork);
+#
+#	if (false) {
+#		print(var);
+#	}
+#
+#	doShit();
+#}
