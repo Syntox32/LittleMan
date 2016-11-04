@@ -1,17 +1,4 @@
 
-class VariablePlaceholder:
-    def __init__(self, instruction, idx, var_name):
-        self.fmt_instr = instruction
-        self.idx = idx
-        self.name = var_name
-
-class JumpPlaceholder:
-    def __init__(self, instruction, jumps_ahead, line, idx):
-        self.fmt_instr = instruction
-        self.jumps = jumps_ahead
-        self.code_location = line
-        self.idx = idx
-
 class JumpFlag:
     def __init__(self, alias):
         self.alias = alias
@@ -75,6 +62,7 @@ class Instruction:
     def __str__(self):
         return self.asm()
 
+
 class AsmExpressionContainer:
     def __init__(self, expression): #, asm_instructions=None, asm_expressions=None):
         self.expression = expression
@@ -89,11 +77,7 @@ class AsmExpressionContainer:
         self.asm.append(instr)
 
     def load(self, name):
-        #curr_idx = len(self.asm)
-        #vp = VariablePlaceholder("LDA {0}", curr_idx, name)
-        #self.placeholders.append(vp)
         self.invalidate_vars = True
-        #self.asm.append("<load op>")
         self.asm.append(Instruction("LDA", variable=name, comment="load"))
 
     def do_print(self):
@@ -103,25 +87,9 @@ class AsmExpressionContainer:
         self.asm.append(Instruction("INP", comment="read"))
 
     def store(self, name):
-        #curr_idx = len(self.asm)
-        #vp = VariablePlaceholder("STA {0}", curr_idx, name)
-        #self.placeholders.append(vp)
         self.invalidate_vars = True
-        #self.asm.append("<store op>")
         self.asm.append(Instruction("STA", variable=name, comment="store variable"))
 
-    def invalidate_mem(self, memory):
-        for vp in self.placeholders:
-            val = memory[vp.name]["line"]
-            self.asm[vp.idx].set_adr(val)
-            #self.asm[vp.idx] = vp.fmt_instr.format(str(val))
-        self.invalidate_vars = False
-
-    def invalidate_jump(self, mem_part_len):
-        for jp in self.jumps:
-            #self.asm[jp.idx] = jp.fmt_instr.format(str((mem_part_len + jp.code_location + jumps)))
-            self.asm[jp.idx].set_adr(mem_part_len + jp.code_location + jumps)
-        self.invalidate_jump = False
 
     def build(self):
         return [instr.asm() for instr in self.asm]
