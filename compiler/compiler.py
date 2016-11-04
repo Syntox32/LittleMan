@@ -212,24 +212,38 @@ class ScriptCompiler(Executor):
             if match_assignment(ex): # VARIABLE ASSIGMENT
                 var_name = str(ex.tokens[0].value)
                 result_variable = ""
-                fix_mem = False
-                if check_mem_exists(var_name):
-                    temp_name = get_name() # get new temp place for the result to stay
-                    add_mem_ref(0, temp_name)
-                    result_variable = temp_name
-                    fix_mem = True
-                else:
+                #fix_mem = False
+                #if check_mem_exists(var_name):
+                temp_name = get_name() # get new temp place for the result to stay
+                add_mem_ref(0, temp_name)
+                result_variable = temp_name
+                fix_mem = True
+
+                if not check_mem_exists(var_name):
                     add_mem_ref(0, var_name)
-                    result_variable = var_name
+                    #fix_mem = True
+                    #fix_mem = True
+                #else:
+                #    add_mem_ref(0, var_name)
+                #    result_variable = var_name
 
                 # skip the identifier and the '=' char
                 relevant_tokens = ex.tokens[2:]
-                (mem, asm) = es.gen_runtime_expression(relevant_tokens, memory, None, result_var=result_variable)
-                for e in asm.get_instructions(): print("\t{0}".format(str(e))) # debug
 
-                # The runtime expression generates it's own memory,
-                # so we have to add this to our "global" memory.
-                for m in mem: memory.update({m: mem[m]})
+                asm = None
+                expr = False
+                if len(relevant_tokens) == 1:
+                    temp_var_name = get_name()
+                    add_mem_ref(relevant_tokens[0].value, temp_var_name)
+                    temp_name = temp_var_name
+                else:
+                    (mem, asm) = es.gen_runtime_expression(relevant_tokens, memory, None, result_var=result_variable)
+                    for e in asm.get_instructions(): print("\t{0}".format(str(e))) # debug
+
+                    # The runtime expression generates it's own memory,
+                    # so we have to add this to our "global" memory.
+                    for m in mem: memory.update({m: mem[m]})
+                    expr = True
 
 
                 # TODO: Check if the expression only contains constant values
@@ -241,14 +255,15 @@ class ScriptCompiler(Executor):
                     pass
 
                 # skip the identifier and the '=' char
-                relevant_tokens = ex.tokens[2:]
+                #relevant_tokens = ex.tokens[2:]
                 #(mem, asm) = es.gen_runtime_expression(relevant_tokens, memory, None, result_var=var_name)
                 #for e in asm.get_instructions(): print("\t{0}".format(str(e)))
                 #for m in mem: memory.update({m: mem[m]})
 
                 a = AsmExpressionContainer(ex)
-                for inst in asm.get_instructions():
-                    a.add(inst)
+                if expr:
+                    for inst in asm.get_instructions():
+                        a.add(inst)
 
                 if fix_mem:
                     a.add(Instruction("LDA", variable=temp_name, comment="variable 're-assignment'"))
