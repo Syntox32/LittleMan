@@ -14,6 +14,7 @@ class ScriptCompiler(Executor):
     def __init__(self):
         self.debug = False
         self.mem = Memory()
+        self.jump_table = {}
         self.solver = ExpressionSolver()
 
     def compile(self, filename, *,
@@ -300,6 +301,69 @@ class ScriptCompiler(Executor):
         return None
 
 
+    def _bind_jumps(self, instructions):
+        def find_jump(instructions, alias):
+            for idx, instr in enumerate(instructions):
+                if instr.is_jump_endpoint:
+                    for j in instr.jumps:
+                        if alias == j.alias:
+                            return (idx, instr)
+            return None
+
+        for inst in instructions:
+            if inst.invalidate_jump_bindings:
+                need = inst.jump
+                (line_idx, jump_inst) = find_jump(instructions, need)
+                if line_idx is None:
+                    print("Error: What the f-...this shouldnt happen...")
+                inst.set_adr(line_idx)
+
+        return instructions
+
+
+    def _merge_jumps(self, instructions):
+        copy = [i for i in instructions]
+        skip = 0
+
+        for idx, inst in enumerate(copy):
+            jumps = []
+            inc = 1
+            if skip != 0:
+                skip -= 1
+                continue
+
+            if isinstance(inst, JumpFlag):
+                # with the way we create the instructions,
+                # there will always be another Instruction
+                # after a jump command.
+                jumps.append(inst)
+
+                nxt = copy[idx + inc]
+                while isinstance(nxt, JumpFlag):
+                    jumps.append(nxt)
+                    inc += 1
+                    skip += 1
+                    nxt = copy[idx + inc]
+
+                # next is now an Instruction (hopefully)
+                if not isinstance(nxt, Instruction):
+                    print("Error: Instance was not an Instruction")
+
+                for jp in jumps:
+                    nxt.add_jump(jp)
+
+        # Delete all the JumpFlags from the copy list
+
+        has_jumps = lambda lst: any([True for l in lst if isinstance(l, JumpFlag)])
+        while has_jumps(copy):
+            for idx, j in enumerate(copy):
+                if isinstance(j, JumpFlag):
+                    del copy[idx]
+                    continue
+
+        return copy
+
+
     def _parse(self, tokens):
         exprs = self._parse_expr_recursive(tokens)
         asm_list = [] # AsmExpression
@@ -312,105 +376,38 @@ class ScriptCompiler(Executor):
 
             asm_list.append(asm_expr)
 
-        def merge_jumps(instructions):
-            copy = [i for i in instructions]
-            skip = 0
-            for idx, inst in enumerate(copy):
-                jumps = []
-                inc = 1
-                if skip != 0:
-                    skip -= 1
-                    continue
 
-                if isinstance(inst, JumpFlag):
-                    # with the way we create the instructions,
-                    # there will always be another Instruction
-                    # after a jump command.
-                    jumps.append(inst)
+        g = []
+        mem_asm = self.mem.gen_asm()
 
-                    nxt = copy[idx + inc]
-                    while isinstance(nxt, JumpFlag):
-                        jumps.append(nxt)
-                        inc += 1
-                        skip += 1
-                        nxt = copy[idx + inc]
+        g.extend(mem_asm)
+         # get the rest of the instructions
+        for expr in asm_list:
+            g.extend(expr.get_instructions())
 
-                    # next is now an Instruction (hopefully)
-                    if not isinstance(nxt, Instruction):
-                        print("Error: Instance was not an Instruction")
+        g.append(Instruction("HLT", comment="exit"))
 
-                    for jp in jumps:
-                        nxt.add_jump(jp)
-
-            def has_jumps(inst_list):
-                for l in inst_list:
-                    if isinstance(l, JumpFlag):
-                        return True
-                return False
-
-            while has_jumps(copy):
-                for idx, j in enumerate(copy):
-                    if isinstance(j, JumpFlag):
-                        del copy[idx]
-                        continue
-
-            return copy
+        print("\nDebug preview:\n")
+        for idx, gg in enumerate(g):
+            print(str(idx) + ": " + str(gg))
 
 
-        def bind_jumps(instructions):
-            def find_jump(instructions, alias):
-                for idx, instr in enumerate(instructions):
-                    if instr.is_jump_endpoint:
-                        for j in instr.jumps:
-                            if alias == j.alias:
-                                return (idx, instr)
-                return None
+        instructions = self._merge_jumps(g)
 
-            for inst in instructions:
-                if inst.invalidate_jump_bindings:
-                    need = inst.jump
-                    (line_idx, jump_inst) = find_jump(instructions, need)
-                    if line_idx is None:
-                        print("Error: What the f-...this shouldnt happen...")
-                    inst.set_adr(line_idx)
+        instructions = self.mem.bind_mem(instructions)
+        if instructions is None:
+            print("Critical Error!: Memory bindings.")
+            return None
 
-            return instructions
-
-        def gen_assembly():
-            g = []
-            mem_asm = self.mem.gen_asm()
-
-            g.extend(mem_asm)
-
-            for expr in asm_list: # get the rest of the instructions
-                g.extend(expr.get_instructions())
-
-            g.append(Instruction("HLT", comment="exit"))
-
-            print("\nDebug preview:\n")
-            for idx, gg in enumerate(g):
-                print(str(idx) + ": " + str(gg))
-
-            instructions = merge_jumps(g)
-
-            instructions = self.mem.bind_mem(instructions)
-
-            if instructions is None:
-                print("Critical Error!: Bindings.")
-                return None
-
-            instructions = bind_jumps(instructions)
-
-            return instructions
-
-        assembly_instructions = gen_assembly()
-        if Utils.check_none_critical(assembly_instructions):
+        instructions = self._bind_jumps(instructions)
+        if Utils.check_none_critical(instructions):
+            print("Critical Error!: Jump bindings.")
             return None
 
 
-        assembly = "\n".join([a.asm() for a in assembly_instructions])
+        assembly = "\n".join([a.asm() for a in instructions])
         print("\nCompiled:\n")
-        for idx, gg in enumerate(assembly_instructions):
+        for idx, gg in enumerate(instructions):
             print(str(idx) + ": " + str(gg))
 
         return [], assembly
