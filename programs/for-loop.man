@@ -1,0 +1,14 @@
+BRA 6   # jump over start memory
+MEM 0   # define variable i
+MEM 1   # add 1
+MEM 10  # upper bound
+MEM 0   # temp
+LDA 4   # load upper
+SUB 2   # subtract i from upper
+BRZ 14  # if AC is zero, i == 10, jump to end
+LDA 2   # load i
+OUT     # print i
+ADD 3   # add 1 to i
+STA 2   # do i + 1 and store it
+BRA 6   # jump to beginning of the loop
+HLT     # stop

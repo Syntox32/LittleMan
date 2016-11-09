@@ -1,0 +1,8 @@
+BRA 3   # jump over memory
+MEM 0   # init variable
+INP     # read input
+STA 2   # store in variable
+INP     # read another variable into AC
+ADD 2   # add our previous variable to the AC
+OUT     # print the contents of AC
+HLT     # stop
