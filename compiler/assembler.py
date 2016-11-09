@@ -18,7 +18,7 @@ class Assembler(Executor):
         """
         self.mem_size = mem_size
 
-    def run(self, filename):
+    def run(self, filename, read_from_file=False):
         """
         Load from file
         """
@@ -31,7 +31,7 @@ class Assembler(Executor):
                 contents = f.read()
 
             exprs = self._interpret(contents)
-            bcode = self._parse(exprs)
+            bcode = self._parse(exprs, decrement_adr=read_from_file)
 
             #e = Executor()
             #print(dir(e))

@@ -10,7 +10,7 @@ if __name__ == "__main__":
 
 	if ext == ".man": # Compile assembly
 		a = compiler.Assembler()
-		a.run(sys.argv[1])
+		a.run(sys.argv[1], read_from_file=True)
 	elif ext == ".script": # Compile script
 		s = compiler.ScriptCompiler()
 		s.compile(sys.argv[1])
