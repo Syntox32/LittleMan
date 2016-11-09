@@ -21,53 +21,62 @@ See: `compiler/assembler.py` and `compiler/executor.py` for the implementation.
 
 Example:
 ```
-MEM 1   # give mem an initial value of '1'
-MEM 5
-LDA 1   # do '1 + 5'
-ADD 0
+LDA 6   # do '1 + 5'
+ADD 5
 OUT     # should print '6'
 HLT
+MEM 1   # give mem an initial value of '1'
+MEM 5
 ```
 
 ## Scripting language
 
 These things are sort of working:
-  1. Variable assigmnent (but re-assignment is not working at the moment..).
-  2. Constant expressions can be evaluated.
-  3. "Runtime" expressions work with the `+` and `-` operator. e.g.: `bar = foo + 3;`
-  4. `if` statements are working with booleans, so `1` is `true`, this means the if-statement will excecute.
+  1. Variable assigmnent and re-assignment.
+  3. Can evaluate expressions with the `+` and `-` operator. e.g.: `bar = foo + 3;`
+  4. `if` can evaluate `0` to "false" and all positive integers to "true".
   5. Printing of variables.
   6. Reading into variables.
-  7. Nested if- and block-statements are working.
-  8. Comments and inline-comments are working.
+  7. Nested if- and block-statements.
+  8. Comments and inline-comments.
 
 Example:
 ```python
-foo = 240;
+#
+# Name: demo1.script
+# Summary: Read one variable, then sum it with a constant.
+#
 
-constant = 2 * 10 * (4 + 10 * (2 + 1));   # constant expression evaluation
-print(constant);
+foo = 13;
+userInput = 0;
 
-bar = 0
-read(bar);
-print(bar);
+print(foo);			# print variables
+print(userInput);
 
-if (bar) {
-    print(123);
-    baz = foo + bar;
-    print(baz);
+read(userInput);    # read input
 
-    test1 = 0;
-    read(test1);
-
-    if (test1) {
-        print(999999);
-    }
-}
+foo = foo + userInput;
+print(foo);
 
 print(foo);
 ```
 
+```python
+#
+# Name: demo2.script
+# Summary: Read user input. If true then print some number.
+#
+
+foo = 42;
+userInput = 0;
+
+read(userInput);    # read input
+
+if (userInput) {
+	var = 123;
+	print(var);
+}
+```
 ## Requirements
 
 A working version of Python 3.4+ is required.
