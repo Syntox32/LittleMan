@@ -1,0 +1,14 @@
+#
+# Name: demo2.script
+# Summary: Read user input. If true then print some number.
+#
+
+foo = 42;
+userInput = 0;
+
+read(userInput);    # read input
+
+if (userInput) {
+	var = 123;
+	print(var);
+}

@@ -1,0 +1,15 @@
+#
+# Name: demo1.script
+# Summary: Read one variable, then sum it with a constant.
+#
+
+foo = 13;
+userInput = 0;
+
+print(foo);			# print variables
+print(userInput);
+
+read(userInput);    # read input
+
+foo = foo + userInput;
+print(foo);

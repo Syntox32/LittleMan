@@ -1,0 +1,29 @@
+#
+# Name: demo3.script
+# Summary: Read user input, do subtraction, then check if true.
+#
+
+foo = 42;
+userInput = 0;
+
+print(foo);
+
+read(userInput);    # read input
+
+if (userInput) {
+	var = 123;
+	print(var);
+
+	test = 10;
+	if (test) {
+		var = 8888;
+		print(var);
+
+		if (0) {   # this will never run
+			test2 = 10;
+			print(test2);
+		}
+	}
+}
+
+print(foo);
