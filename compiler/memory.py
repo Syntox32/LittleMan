@@ -1,4 +1,5 @@
 from compiler.instruction import Instruction, JumpFlag
+from compiler.utils import Utils
 
 class Memory:
 

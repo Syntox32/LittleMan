@@ -1,3 +1,4 @@
+import inspect
 
 class Utils:
     DebugPrint = True
