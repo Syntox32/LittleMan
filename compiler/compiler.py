@@ -175,7 +175,7 @@ class ScriptCompiler(Executor):
         # reference exists
         else:
             temp = Memory.gen_temp_name()
-            self.mem.add_reference(temp)
+            #self.mem.add_reference(temp)
 
             if len(relevant_tokens) == 1 and relevant_tokens[0].value.isdigit():
                 # one token that is an int value
@@ -185,6 +185,7 @@ class ScriptCompiler(Executor):
                 self.mem.add_reference(temp, self.mem.get_reference(relevant_tokens[0].value))
             else:
                 # several tokens, let's solve it
+                self.mem.add_reference(temp)
                 instructions = self.solver.gen_runtime_expression(relevant_tokens,
                     self.mem, result_var=temp)
                 asm.merge(instructions)
@@ -199,38 +200,58 @@ class ScriptCompiler(Executor):
 
     def _handle_if(self, ex):
         # skip the identifier and the '=' char
-        tokens = ex.tokens[2:len(ex.tokens)-1]
-        if len(tokens) == 1 and tokens[0].token == TokenType.Identifier \
-                and not tokens[0].value.isdigit():
+        relevant_tokens = ex.tokens[2:len(ex.tokens)-1]
+
+        asm = AsmExpressionContainer(ex)
+        result_var = ""
+
+        if len(relevant_tokens) == 1 and relevant_tokens[0].token == TokenType.Identifier \
+                and not relevant_tokens[0].value.isdigit():
             # single token with a value, should be dynamic
             #print("IT'S AN IDENTIFIER")
-            var_name = str(tokens[0].value)
-
+            var_name = str(relevant_tokens[0].value)
+            result_var = var_name
+            #self.mem.add_reference(temp, self.mem.get_reference(relevant_tokens[0].value))
         else:
-            val = int(es.solve_expr(ex.tokens[2:len(ex.tokens)-1], memory, None))
-            ex.value = val
-            var_name = add_mem_ref(val)
+            temp = Memory.gen_temp_name()
+            #val = int(self.solver.solve_expr(ex.tokens[2:len(ex.tokens)-1], self.mem, None))
+            #ex.value = val
+            #var_name = add_mem_ref(val)
+            if len(relevant_tokens) == 1 and relevant_tokens[0].value.isdigit():
+                # one token that is an int value
+                self.mem.add_reference(temp, relevant_tokens[0].value)
+            elif len(relevant_tokens) == 1 and self.mem.has_reference(relevant_tokens[0].value):
+                # one token that is an identifier
+                #self.mem.add_reference(temp, self.mem.get_reference(relevant_tokens[0].value))
+                temp = relevant_tokens[0].value
+            else:
+                # several tokens, let's solve it
+                self.mem.add_reference(temp)
+                instructions = self.solver.gen_runtime_expression(relevant_tokens,
+                    self.mem, result_var=temp)
+                asm.merge(instructions)
+            result_var = temp
 
-        a = AsmExpressionContainer(ex)
 
-        a.load(var_name)
+        asm.load(result_var)
         #print("a.load(var_name); == " + var_name)
         jp_name = Memory.gen_jump_name()
-        a.add(Instruction("BRZ", jump=jp_name, comment="jump if zero"))
+        #asm.load(temp)
+        asm.add(Instruction("BRZ", jump=jp_name, comment="jump if zero"))
 
         for e in ex.expressions:
             ae = self._handle_expr(e)
             if ae is not None:
-                a.asm_expressions.append(ae)
+                asm.asm_expressions.append(ae)
 
-        for aa in a.asm_expressions:
+        for aa in asm.asm_expressions:
             instrs = aa.get_instructions()
             for i in instrs:
-                a.add(i)
+                asm.add(i)
 
-        a.add(JumpFlag(jp_name))
+        asm.add(JumpFlag(jp_name))
 
-        return a
+        return asm
 
 
     def _handle_func_call(self, ex):
