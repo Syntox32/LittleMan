@@ -9,8 +9,12 @@ if __name__ == "__main__":
 	ext = os.path.splitext(sys.argv[1])[1]
 
 	if ext == ".man": # Compile assembly
-		a = compiler.Assembler()
-		a.run(sys.argv[1], read_from_file=True)
+		#a = compiler.Assembler()
+		#a.run(sys.argv[1], read_from_file=True)
+		d = compiler.Debugger()
+		d.load_assembler_from_file(sys.argv[1])
+		#d.display()
+		d.next()
 	elif ext == ".script": # Compile script
 		s = compiler.ScriptCompiler()
 		s.compile(sys.argv[1])
