@@ -136,11 +136,18 @@ class TestCompiler(unittest.TestCase):
 
     def test_simple_negative(self):
         script = """
-        foo = 10 +-13+ -10;
+        foo = -13 + - + 10; #10 +-13+ -10;
         print(foo);
         """
         output = self.compiler.compile(script)
-        assert output[0] == "-13"
+        assert output[0] == "-3"
+
+        script = """
+        foo = -13 + - 10 + 1; #10 +-13+ -10;
+        print(foo);
+        """
+        output = self.compiler.compile(script)
+        assert output[0] == "-22"
 
     def test_variable_assignment(self):
         script = """

@@ -37,7 +37,7 @@ class Tokenizer():
         curr_str = ""
 
         # This is explained later in the method
-        double_operator = False
+        expecting_identifier = False
 
         def handle_curr_str(currstr):
             """
@@ -73,6 +73,8 @@ class Tokenizer():
                 self.reader.read_until("\n");
                 continue
 
+            #if expecting_identifier
+
             # Handle newlines as end of line
             # if self.reader.peak() == "\n":
             #    Remove this line if you want semicolon-based code
@@ -82,22 +84,27 @@ class Tokenizer():
             #	 self.reader.next()
             #	 continue
 
+            # If the tokenizer expects an idenfitier (e.g. "1") and it finds
+            # a char "-" it will add a "0" token before it, such that the
+            # expression solver will be able to evalutate the expression.
+            # Example: "var = -2;" becomes "var = 0 - 2;"
+            if (self.reader.peak() == "+" or self.reader.peak() == "-") \
+                    and expecting_identifier:
+                token = Token("0", TokenType.Identifier)
+                tokens.append(token)
+                expecting_identifier = False
+
             if self.reader.peak() == "=":
-                double_operator = False
+                expecting_identifier = True
 
             # Check to see if the next character is a symbol we know of
             if self.reader.peak() in SYMBOLS:
-
-                c = self.reader.peak()
-                # If the next char is an operator, we prepare for it being
-                # a second after this one.
-                if (c == "+" or c == "-") and not double_operator:
-                    double_operator = True
-                else:
-                    double_operator = False
-
                 # Maybe create identifier
                 curr_str = handle_curr_str(curr_str)
+
+                char = self.reader.next()
+                token = Token(char, SYMBOLS[char])
+                tokens.append(token)
 
                 # This is a hack to make sure assignments like "-13" and
                 # "-13 + - 10" work.
@@ -105,18 +112,18 @@ class Tokenizer():
                 # If the tokenizer detects that there are two consecutive
                 # operators, it will place a "0" token idenfitier in the middle
                 # so that the expression solver can evaluate it.
-                #
-                if (c == "+" or c == "-") and not double_operator:
+                # Example:
+                #   > foo = -13 + - + 10;
+                #   becomes
+                #   > foo = 0 - 13 + 0 - 0 + 10;
+                ops = ["+", "-"]
+                self.reader.skip_whitespace()
+                if char in ops and self.reader.peak() in ops:
                     token = Token("0", TokenType.Identifier)
                     tokens.append(token)
-
-                char = self.reader.next()
-                token = Token(char, SYMBOLS[char])
-                tokens.append(token)
-                print("lol: " + char)
-
             else:
                 curr_str += self.reader.next()
+                expecting_identifier = False
 
 
         return tokens
