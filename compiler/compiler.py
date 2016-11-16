@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import os, inspect
+from compiler.error import AssemblerError, ParseError, ExtensionError
 from compiler.executor import Executor
 from compiler.tokenizer import Tokenizer, Token
 from compiler.token import TokenType, SYMBOLS, KEYWORDS
@@ -11,47 +12,38 @@ from compiler.utils import Utils
 
 class ScriptCompiler(Executor):
 
-    def __init__(self):
+    def __init__(self, *, testing=False):
+        self.testing = testing
         self.debug = False
         self.mem = Memory()
         self.jump_table = {}
         self.solver = ExpressionSolver()
 
-    def compile(self, filename, *,
-            debug=False,
-            write_assembler_to_file=False,
-            write_filename=None):
-        self.debug = debug
-        self.write_assembler_to_file = write_assembler_to_file
-        self.write_filename = write_filename
-
+    def compile_from_file(self, filename, *, debug=False):
         path = os.path.abspath(filename)
         ext = os.path.splitext(path)[1]
 
-        if ext == ".script":
-            # Read file contents and interpret it
-            t = Tokenizer()
-            t.load_from_file(path)
+        if ext != ".script":
+            raise ExtensionError("Unknown extension: \'{0}\'".format(ext))
 
-            self.tokens = t.tokenize()
-            (exprs, asm) = self._parse(self.tokens)
+        with open(path, "r") as f:
+            return self.compile(f.read(), debug=debug)
 
-            a = Assembler(mem_size=100)
-            a.load(asm)
 
-            # write generated assembly to file
-            # with open("gen.man", "w") as f: f.write(asm)
+    def compile(self, string, *, debug=False):
+        self.debug = debug
 
-            # Print out some debug values
-            if exprs is not None:
-                print("\nExpressions:")
-                for idx, val in enumerate(exprs):
-                    print("   {0}: {1}".format(str(idx)," ".join([str(t.value) for t in val.tokens])))
+        # Read file contents and interpret it
+        t = Tokenizer()
+        t.load(string)
 
-            #print("\nTokens:")
-            #for t in self.tokens: print("   {0}\t\t{1}".format(str(t.value), str(t.token)))
-        else: # unknown extension
-            print("I don't recognize that extension: \'{0}\'".format(ext))
+        self.tokens = t.tokenize()
+        (exprs, asm) = self._parse(self.tokens)
+
+        a = Assembler(mem_size=100, testing=self.testing)
+        output = a.load(asm)
+
+        return output
 
 
     def _print_expr_tree(self, exprs, prefix=""):
