@@ -38,10 +38,15 @@ class ScriptCompiler(Executor):
         t.load(string)
 
         self.tokens = t.tokenize()
+
+        print("\nTokens:")
+        for t in self.tokens: print("   {0}\t\t{1}".format(str(t.value), str(t.token)))
+
         (exprs, asm) = self._parse(self.tokens)
 
         a = Assembler(mem_size=100, testing=self.testing)
         output = a.load(asm)
+
 
         return output
 

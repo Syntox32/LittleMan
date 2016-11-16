@@ -36,6 +36,9 @@ class Tokenizer():
         tokens = []
         curr_str = ""
 
+        # This is explained later in the method
+        double_operator = False
+
         def handle_curr_str(currstr):
             """
             Check to see if the current string is either
@@ -45,10 +48,12 @@ class Tokenizer():
             if currstr.strip() is not "":
                 currstr = currstr.strip()
                 token = None
+
                 if currstr in KEYWORDS:
                     token = Token(currstr, KEYWORDS[currstr])
                 else:
                     token = Token(currstr, TokenType.Identifier)
+
                 tokens.append(token)
                 currstr = ""
             return currstr
@@ -77,17 +82,41 @@ class Tokenizer():
             #	 self.reader.next()
             #	 continue
 
+            if self.reader.peak() == "=":
+                double_operator = False
+
             # Check to see if the next character is a symbol we know of
             if self.reader.peak() in SYMBOLS:
+
+                c = self.reader.peak()
+                # If the next char is an operator, we prepare for it being
+                # a second after this one.
+                if (c == "+" or c == "-") and not double_operator:
+                    double_operator = True
+                else:
+                    double_operator = False
+
                 # Maybe create identifier
                 curr_str = handle_curr_str(curr_str)
+
+                # This is a hack to make sure assignments like "-13" and
+                # "-13 + - 10" work.
+                #
+                # If the tokenizer detects that there are two consecutive
+                # operators, it will place a "0" token idenfitier in the middle
+                # so that the expression solver can evaluate it.
+                #
+                if (c == "+" or c == "-") and not double_operator:
+                    token = Token("0", TokenType.Identifier)
+                    tokens.append(token)
 
                 char = self.reader.next()
                 token = Token(char, SYMBOLS[char])
                 tokens.append(token)
-                continue
+                print("lol: " + char)
+
             else:
                 curr_str += self.reader.next()
-                continue
+
 
         return tokens
