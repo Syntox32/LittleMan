@@ -57,7 +57,7 @@ class TestAssembler(unittest.TestCase):
         output = self.assembler.load(asm)
         assert output[0] == "5"
 
-    def test_brz(self):
+    def test_brp(self):
         # test if it jumps when the AC is 0
         asm = """LDA 5\nBRP 3\nLDA 6\nOUT\nHLT\nMEM 0\nMEM 5"""
         output = self.assembler.load(asm)
@@ -98,6 +98,63 @@ class TestAssembler(unittest.TestCase):
         output = self.assembler.load(asm)
         assert output[0] == "15" # add operation
         assert output[1] == "5"  # sub operation
+
+
+class TestCompiler(unittest.TestCase):
+    def setUp(self):
+        self.compiler = compiler.ScriptCompiler(testing=True)
+
+    def test_load_from_file(self):
+        filename = os.path.abspath("programs/demo1.script")
+        self.compiler.compile_from_file(filename)
+
+    def test_load_from_string(self):
+        script = """
+        foo = 13;
+        userInput = 0;
+        print(foo);
+        """
+        self.compiler.compile(script)
+
+    def test_simple_output(self):
+        script = """
+        foo = 13;
+        print(foo);
+        """
+        output = self.compiler.compile(script)
+        assert output[0] == "13"
+
+    def test_comments(self):
+        script = """
+        # this is a comment
+        foo = 13;#this is a comment
+        print(foo);      #     more comments
+        #commenttttt
+        """
+        output = self.compiler.compile(script)
+        assert output[0] == "13"
+
+    def test_simple_negative(self):
+        script = """
+        foo = 10 +-13+ -10;
+        print(foo);
+        """
+        output = self.compiler.compile(script)
+        assert output[0] == "-13"
+
+    def test_variable_assignment(self):
+        script = """
+        bar = 10000000;
+        test=0;tester =10;
+
+        print(bar);
+        print(test);
+        print(tester);
+        """
+        output = self.compiler.compile(script)
+        assert output[0] == "10000000"
+        assert output[1] == "0"
+        assert output[2] == "10"
 
 if __name__ == "__main__":
     unittest.main()
