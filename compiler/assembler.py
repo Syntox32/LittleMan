@@ -111,14 +111,18 @@ class Assembler(Executor):
             has_adr = ex.adr is not None
             adr  = int(ex.adr) if has_adr else None
 
-            if token == "": # if we find an empty token, skip it
-                continue
+            if token == "": continue # if we find an empty token, skip it
+
+            # Check if the instruction is missing an address
+            if not has_adr and token in ["ADD", "SUB", "STA", "LDA", "BRA", "BRZ", "BRP", "MEM"]:
+                raise ParseError("Expected address for instruction: '{0}' Line: {1}"
+                    .format(token, str(idx)))
 
             if   token == "ADD": bytecode.append((1 * self.mem_size) + adr - adr_decrement) # add X to AC
             elif token == "SUB": bytecode.append((2 * self.mem_size) + adr - adr_decrement) # sub X from AC
 
-            elif token == "STA": bytecode.append((3 * self.mem_size)  + adr - adr_decrement)	# Store AC in X
-            elif token == "LDA": bytecode.append((5 * self.mem_size)  + adr - adr_decrement)	# Load X into AC
+            elif token == "STA": bytecode.append((3 * self.mem_size)  + adr - adr_decrement) # Store AC in X
+            elif token == "LDA": bytecode.append((5 * self.mem_size)  + adr - adr_decrement) # Load X into AC
 
             elif token == "BRA": bytecode.append((6 * self.mem_size)  + adr - adr_decrement) # Set PC to X
             elif token == "BRZ": bytecode.append((7 * self.mem_size)  + adr - adr_decrement) # Set PC to X if AC=0
