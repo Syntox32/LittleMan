@@ -1,5 +1,6 @@
 import os
 from compiler.executor import Executor
+from compiler.error import AssemblerError, ParseError, ExtensionError
 
 class AsmExpression():
     def __init__(self, token, address=None):
@@ -12,11 +13,13 @@ class Assembler(Executor):
     instructions that can be understood by the 'Executor' class.
     """
 
-    def __init__(self, *, mem_size=100):
+    def __init__(self, *, mem_size=100, testing=False):
         """
         Set memory size
         """
         self.mem_size = mem_size
+        self.testing = testing
+        super().__init__(testing=testing)
 
     def run(self, filename, read_from_file=False):
         """
@@ -33,15 +36,13 @@ class Assembler(Executor):
             exprs = self._interpret(contents)
             bcode = self._parse(exprs, decrement_adr=read_from_file)
 
-            #e = Executor()
-            #print(dir(e))
-
             # Print the new bytecode
             print("\nBytecode: [{0}]\n".format(",".join([str(b) for b in bcode])))
-            self.execute_bytecode(bcode, self.mem_size)
+            output = self.execute_bytecode(bcode, self.mem_size)
+            return output
         else:
             # Error unknown extension
-            print("I don't recognize that extension: \'{0}\'".format(ext))
+            raise ExtensionError("Unknown extension: \'{0}\'".format(ext))
 
 
     def load(self, string):
@@ -53,7 +54,8 @@ class Assembler(Executor):
 
         # Print the new bytecode
         print("\nBytecode: [{0}]\n".format(",".join([str(b) for b in bcode])))
-        self.execute_bytecode(bcode, self.mem_size)
+        output = self.execute_bytecode(bcode, self.mem_size)
+        return output
 
 
     def _interpret(self, string):
@@ -84,7 +86,7 @@ class Assembler(Executor):
                 #   print("Error! Memory address space exceeded: \'{0}\'".format(adr))
                 exprs.append(AsmExpression(token, adr))
             else: # Error
-                print("Error! Invalid number of values({1}: \'{0}\'".format(len(values), line))
+                raise ParseError("Invalid number of values('{1}'): {0}".format(len(values), line))
 
         return exprs
 
@@ -109,6 +111,9 @@ class Assembler(Executor):
             has_adr = ex.adr is not None
             adr  = int(ex.adr) if has_adr else None
 
+            if token == "": # if we find an empty token, skip it
+                continue
+
             if   token == "ADD": bytecode.append((1 * self.mem_size) + adr - adr_decrement) # add X to AC
             elif token == "SUB": bytecode.append((2 * self.mem_size) + adr - adr_decrement) # sub X from AC
 
@@ -124,5 +129,8 @@ class Assembler(Executor):
 
             elif token == "MEM": bytecode.append(adr) # Reserve a memory slot with value==adr
             elif token == "HLT": bytecode.append(000) # Exit
+
+            else: # unknown token
+                raise ParseError("Unknown token: '{0}'".format(token))
 
         return bytecode
