@@ -61,6 +61,7 @@ class Tokenizer():
                 # Maybe create identifier
                 curr_str = handle_curr_str(curr_str)
                 self.reader.skip_whitespace()
+                continue
 
             # Skip to the end of the line if there is comments
             if self.reader.peak() == "#":
