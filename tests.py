@@ -140,7 +140,7 @@ class TestCompiler(unittest.TestCase):
         print(foo);
         """
         output = self.compiler.compile(script)
-        assert output[0] == "-3"
+        assert output[0] == "-23"
 
         script = """
         foo = -13 + - 10 + 1; #10 +-13+ -10;

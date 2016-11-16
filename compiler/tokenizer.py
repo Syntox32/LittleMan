@@ -115,10 +115,12 @@ class Tokenizer():
                 # Example:
                 #   > foo = -13 + - + 10;
                 #   becomes
-                #   > foo = 0 - 13 + 0 - 0 + 10;
+                #   > foo = 0 - 13 + 0 - 10;
                 ops = ["+", "-"]
                 self.reader.skip_whitespace()
-                if char in ops and self.reader.peak() in ops:
+                if char == "-" and self.reader.peak() == "+":
+                    self.reader.next()
+                elif char in ops and self.reader.peak() in ops:
                     token = Token("0", TokenType.Identifier)
                     tokens.append(token)
             else:
