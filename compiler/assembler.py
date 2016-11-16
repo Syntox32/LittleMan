@@ -33,29 +33,23 @@ class Assembler(Executor):
             with open(path, "r") as f:
                 contents = f.read()
 
-            exprs = self._interpret(contents)
-            bcode = self._parse(exprs, decrement_adr=read_from_file)
-
-            # Print the new bytecode
-            print("\nBytecode: [{0}]\n".format(",".join([str(b) for b in bcode])))
-            output = self.execute_bytecode(bcode, self.mem_size)
-            return output
+            return self.load(contents, read_from_file)
         else:
             # Error unknown extension
             raise ExtensionError("Unknown extension: \'{0}\'".format(ext))
 
 
-    def load(self, string):
+    def load(self, string, read_from_file=False):
         """
         Load from string
         """
         exprs = self._interpret(string)
-        bcode = self._parse(exprs, False)
+        bcode = self._parse(exprs, decrement_adr=read_from_file)
 
         # Print the new bytecode
         print("\nBytecode: [{0}]\n".format(",".join([str(b) for b in bcode])))
-        output = self.execute_bytecode(bcode, self.mem_size)
-        return output
+
+        return self.execute_bytecode(bcode, self.mem_size)
 
 
     def _interpret(self, string):
@@ -116,7 +110,7 @@ class Assembler(Executor):
             # Check if the instruction is missing an address
             if not has_adr and token in ["ADD", "SUB", "STA", "LDA", "BRA", "BRZ", "BRP", "MEM"]:
                 raise ParseError("Expected address for instruction: '{0}' Line: {1}"
-                    .format(token, str(idx)))
+                    .format(token, str(idx + 1)))
 
             if   token == "ADD": bytecode.append((1 * self.mem_size) + adr - adr_decrement) # add X to AC
             elif token == "SUB": bytecode.append((2 * self.mem_size) + adr - adr_decrement) # sub X from AC
