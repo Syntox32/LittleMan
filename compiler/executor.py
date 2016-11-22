@@ -11,7 +11,7 @@ class Executor:
         running = True
         mem_size = memory_size
 
-        print(TermColors.HEADER + "Program Output:")
+        print("Program Output:")
 
         # Run instruction cycle
         while running:
