@@ -1,0 +1,16 @@
+#
+# Read input, check if value is == 100, print some number.
+#
+
+foo = 0;
+read(foo);
+
+
+result_var = foo - 100;
+if (result_var) {
+
+	bar = 123;
+	print(bar);
+
+}
+
