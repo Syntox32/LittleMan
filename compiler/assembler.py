@@ -155,7 +155,7 @@ class Debugger:
         self.executor = StatefullExecutor(mem_size=mem_size)
         self.filename = ""
 
-        self.ASM_VIEW_COUNT = 15
+        self.ASM_VIEW_COUNT = 25
         self.DISPLAY_WIDTH = 50
         self.ASM_VIEW_WIDTH = 22
         self.R_COL_WIDTH = self.DISPLAY_WIDTH - self.ASM_VIEW_WIDTH - 1

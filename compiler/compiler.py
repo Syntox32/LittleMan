@@ -36,6 +36,20 @@ class ScriptCompiler(Executor):
             self.tokens = t.tokenize()
             (exprs, asm) = self._parse(self.tokens)
 
+
+            # some hacky stuff to print address corrected instructions
+            # to a file
+            #
+            _a = Assembler(mem_size=100)
+            _a_exprs = _a._interpret(asm)
+            with open("assembly_output.man", "w") as f:
+                for ex in _a_exprs:
+                    if ex.adr is not None and ex.token != "MEM":
+                        ex.adr += 1
+                    print(str(ex))
+                    f.write(str(ex)+"\n")
+
+
             a = Assembler(mem_size=100)
             a.load(asm)
 
