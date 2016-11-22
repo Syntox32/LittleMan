@@ -20,7 +20,7 @@ if (userInput) {
 		print(var);
 
 		if (0) {   # this will never run
-			test2 = 10;
+			test2 = 22;
 			print(test2);
 		}
 	}

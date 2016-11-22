@@ -46,7 +46,7 @@ class ScriptCompiler(Executor):
                 for ex in _a_exprs:
                     if ex.adr is not None and ex.token != "MEM":
                         ex.adr += 1
-                    print(str(ex))
+                    #print(str(ex))
                     f.write(str(ex)+"\n")
 
 
